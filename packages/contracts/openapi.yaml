@@ -1,0 +1,388 @@
+openapi: 3.1.0
+info:
+  title: GP CFC API
+  version: 0.4.0
+  description: Rotas marcadas implemented funcionam na API local; demais rotas são alvo de produto.
+servers:
+  - url: http://localhost:3000
+security:
+  - bearerAuth: []
+paths:
+  /health/live:
+    get:
+      security: []
+      operationId: healthLive
+      responses: { '200': { description: Processo vivo } }
+  /health/ready:
+    get:
+      security: []
+      operationId: healthReady
+      responses: { '200': { description: Banco acessível }, '503': { description: Banco indisponível } }
+  /api/v1/meta:
+    get:
+      security: []
+      operationId: getMeta
+      responses: { '200': { description: Versão da API } }
+  /api/v1/students:
+    get:
+      operationId: listStudents
+      x-implementation-status: implemented
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - { name: unitId, in: query, schema: { type: string, format: uuid } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 30 } }
+      responses:
+        '200':
+          description: Alunos visíveis nas unidades autorizadas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StudentPage' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '400': { $ref: '#/components/responses/Problem' }
+    post:
+      operationId: createStudent
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateStudent' }
+      responses:
+        '201': { description: Aluno criado, content: { application/json: { schema: { $ref: '#/components/schemas/Student' } } } }
+        '409': { $ref: '#/components/responses/Problem' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+  /api/v1/students/{studentId}:
+    get:
+      operationId: getStudent
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/StudentId' }, { $ref: '#/components/parameters/OrganizationId' } ]
+      responses:
+        '200': { description: Aluno e suas matrículas visíveis, content: { application/json: { schema: { $ref: '#/components/schemas/StudentDetail' } } } }
+        '404': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/v1/students/search:
+    post:
+      operationId: searchStudents
+      x-implementation-status: implemented
+      description: Busca paginada por nome, CPF exato ou trecho do telefone; dados sensíveis ficam no corpo JSON.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StudentSearch' }
+      responses:
+        '200': { description: Alunos visíveis nas unidades autorizadas, content: { application/json: { schema: { $ref: '#/components/schemas/StudentPage' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+  /api/v1/students/{studentId}/timeline:
+    get:
+      operationId: getStudentTimeline
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/StudentId' }, { $ref: '#/components/parameters/OrganizationId' }, { name: cursor, in: query, schema: { type: string } }, { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 30 } } ]
+      responses: { '200': { description: Eventos auditados do aluno e suas matrículas e processos visíveis, content: { application/json: { schema: { $ref: '#/components/schemas/StudentTimelinePage' } } } }, '404': { $ref: '#/components/responses/Problem' } }
+  /api/v1/catalog/packages:
+    get:
+      operationId: listCatalogPackages
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Pacotes da unidade e pacotes legados compartilhados }, '403': { $ref: '#/components/responses/Problem' } }
+    post:
+      operationId: createCatalogPackage
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CatalogPackageDraft' } } } }
+      responses: { '201': { description: Produto, pacote e versão em rascunho }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/catalog/packages/{packageId}/versions:
+    post:
+      operationId: createCatalogDraftVersion
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: packageId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CatalogVersionDraft' } } } }
+      responses: { '201': { description: Nova versão em rascunho }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/catalog/versions/{versionId}:
+    patch:
+      operationId: updateCatalogDraftVersion
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: versionId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CatalogVersionDraft' } } } }
+      responses: { '200': { description: Rascunho atualizado }, '409': { $ref: '#/components/responses/Problem' } }
+    delete:
+      operationId: deleteCatalogDraftVersion
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Rascunho removido }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/catalog/versions/{versionId}/publish:
+    post:
+      operationId: publishCatalogVersion
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: versionId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId], properties: { unitId: { type: string, format: uuid } } } } } }
+      responses: { '200': { description: Versão publicada e imutável }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/enrollments:
+    post:
+      operationId: createEnrollment
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateEnrollment' } } }
+      responses: { '201': { description: Matrícula criada }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/enrollments/{enrollmentId}:
+    get:
+      operationId: getEnrollment
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { name: enrollmentId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses: { '200': { description: Matrícula e snapshot do pacote }, '404': { $ref: '#/components/responses/Problem' } }
+  /api/v1/enrollments/{enrollmentId}/activate:
+    post:
+      operationId: activateEnrollment
+      x-implementation-status: implemented
+      x-development-only: true
+      description: A confirmação é sintética; a ativação só está habilitada em NODE_ENV=development ou test até existir assinatura verificável.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: enrollmentId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,demoActivationConfirmed], properties: { unitId: { type: string, format: uuid }, demoActivationConfirmed: { type: boolean, const: true } } } } } }
+      responses: { '200': { description: Matrícula ativa e processo criado no mesmo commit }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/processes/{processId}:
+    get:
+      operationId: getProcess
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/ProcessId' }, { $ref: '#/components/parameters/OrganizationId' } ]
+      responses: { '200': { description: Processo, etapas e tarefas }, '404': { $ref: '#/components/responses/Problem' } }
+  /api/v1/processes/{processId}/available-actions:
+    get:
+      operationId: availableProcessActions
+      x-implementation-status: planned
+      parameters: [ { $ref: '#/components/parameters/ProcessId' }, { $ref: '#/components/parameters/OrganizationId' } ]
+      responses: { '200': { description: Ações autorizadas e pré-condições } }
+  /api/v1/processes/{processId}/transitions:
+    post:
+      operationId: transitionProcess
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/ProcessId' }, { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/TransitionRequest' } } }
+      responses: { '200': { description: Estado e ações seguintes }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/schedule/availability:
+    get:
+      operationId: findAvailability
+      x-implementation-status: planned
+      parameters:
+        - { $ref: '#/components/parameters/OrganizationId' }
+        - { name: unitId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: studentId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
+      responses: { '200': { description: Sugestões sujeitas a reconfirmação no POST } }
+  /api/v1/lessons:
+    post:
+      operationId: bookLesson
+      x-implementation-status: planned
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/BookLesson' } } }
+      responses: { '201': { description: Aula reservada }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/lessons/{lessonId}/cancel:
+    post:
+      operationId: cancelLesson
+      x-implementation-status: planned
+      parameters: [ { name: lessonId, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses: { '200': { description: Aula cancelada, crédito tratado conforme regra } }
+  /api/v1/payments:
+    post:
+      operationId: receivePayment
+      x-implementation-status: planned
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReceivePayment' } } }
+      responses: { '201': { description: Pagamento registrado }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/automation-jobs:
+    post:
+      operationId: requestAutomation
+      x-implementation-status: planned
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AutomationRequest' } } }
+      responses: { '202': { description: Job aceito; acompanhar status assíncrono } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    OrganizationId: { name: X-Organization-Id, in: header, required: true, schema: { type: string, format: uuid }, description: Escopo solicitado, validado contra token e unidade }
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 128 } }
+    StudentId: { name: studentId, in: path, required: true, schema: { type: string, format: uuid } }
+    ProcessId: { name: processId, in: path, required: true, schema: { type: string, format: uuid } }
+    UnitQuery: { name: unitId, in: query, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Problem:
+      description: Erro com código estável e ID de correlação
+      content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+  schemas:
+    Problem:
+      type: object
+      required: [code,message,correlationId]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        correlationId: { type: string, format: uuid }
+        details: { type: object, additionalProperties: true }
+    Student:
+      type: object
+      required: [id,fullName,unitId]
+      properties:
+        id: { type: string, format: uuid }
+        fullName: { type: string }
+        unitId: { type: string, format: uuid }
+    StudentPage:
+      type: object
+      required: [data,hasMore]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Student' } }
+        hasMore: { type: boolean }
+        nextCursor: { type: string }
+    StudentSearch:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, minLength: 2, maxLength: 100 }
+        unitId: { type: string, format: uuid }
+        limit: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        cursor: { type: string }
+    StudentTimelinePage:
+      type: object
+      required: [data,hasMore]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required: [id,action,entityType,entityId,unitId,occurredAt]
+            properties:
+              id: { type: string, format: uuid }
+              action: { type: string }
+              entityType: { type: string }
+              entityId: { type: string, format: uuid }
+              unitId: { type: string, format: uuid }
+              actorUserId: { type: [string, 'null'], format: uuid }
+              details: { type: [object, 'null'] }
+              occurredAt: { type: string, format: date-time }
+        hasMore: { type: boolean }
+        nextCursor: { type: string }
+    StudentDetail:
+      allOf:
+        - { $ref: '#/components/schemas/Student' }
+        - type: object
+          required: [createdAt,contacts,enrollments]
+          properties:
+            createdAt: { type: string, format: date-time }
+            documentKind: { type: [string, 'null'] }
+            documentLast4: { type: [string, 'null'] }
+            contacts:
+              type: array
+              items:
+                type: object
+                required: [kind,value,isPrimary]
+                properties:
+                  kind: { type: string, enum: [PHONE,EMAIL] }
+                  value: { type: string }
+                  isPrimary: { type: boolean }
+            enrollments:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { type: string }
+                  unitId: { type: string, format: uuid }
+                  processId: { type: [string, 'null'], format: uuid }
+                  processStatus: { type: [string, 'null'] }
+    CreateStudent:
+      type: object
+      required: [unitId,fullName]
+      properties:
+        unitId: { type: string, format: uuid }
+        fullName: { type: string, minLength: 2 }
+        phone: { type: string, description: Telefone opcional com 10 a 13 dígitos após normalização }
+        documentKind: { type: string, enum: [CPF], description: Opcional; informar junto com documentNumber }
+        documentNumber: { type: string, description: CPF válido; omitido para aluno sem CPF }
+    CreateEnrollment:
+      type: object
+      required: [unitId,studentId,packageVersionId,agreedPriceCents]
+      properties:
+        unitId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        packageVersionId: { type: string, format: uuid }
+        agreedPriceCents: { type: integer, minimum: 0 }
+    CatalogVersionDraft:
+      type: object
+      required: [unitId,priceCents,items]
+      properties:
+        unitId: { type: string, format: uuid }
+        priceCents: { type: integer, minimum: 0 }
+        terms: { type: object }
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [itemType,quantity]
+            properties: { itemType: { type: string }, quantity: { type: integer, minimum: 1 } }
+    CatalogPackageDraft:
+      allOf:
+        - { $ref: '#/components/schemas/CatalogVersionDraft' }
+        - type: object
+          required: [code,productName,serviceType,packageName]
+          properties: { code: { type: string }, productName: { type: string }, serviceType: { type: string }, packageName: { type: string } }
+    TransitionRequest:
+      type: object
+      required: [unitId,stepId,toStatus,expectedStatus]
+      properties:
+        unitId: { type: string, format: uuid }
+        stepId: { type: string, format: uuid }
+        toStatus: { type: string }
+        expectedStatus: { type: string }
+        reason: { type: string }
+    BookLesson:
+      type: object
+      required: [unitId,studentId,processId,category,startsAt,endsAt,instructorId,vehicleId]
+      properties:
+        unitId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        processId: { type: string, format: uuid }
+        category: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        instructorId: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+    ReceivePayment:
+      type: object
+      required: [unitId,amountCents,method,allocations]
+      properties:
+        unitId: { type: string, format: uuid }
+        amountCents: { type: integer, minimum: 1 }
+        method: { enum: [CASH,PIX,DEBIT_CARD,CREDIT_CARD,BOLETO,TRANSFER,GATEWAY] }
+        allocations:
+          type: array
+          items:
+            type: object
+            required: [installmentId,amountCents]
+            properties:
+              installmentId: { type: string, format: uuid }
+              amountCents: { type: integer, minimum: 1 }
+    AutomationRequest:
+      type: object
+      required: [unitId,processId,provider,operation]
+      properties:
+        unitId: { type: string, format: uuid }
+        processId: { type: string, format: uuid }
+        provider: { type: string }
+        operation: { type: string }

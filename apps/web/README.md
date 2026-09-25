@@ -1,0 +1,5 @@
+# Web
+
+`index.html` é a interface funcional de desenvolvimento, servida pela API em `http://127.0.0.1:3000/app`. Separa atendimento e catálogo em duas áreas; busca alunos por nome/CPF/telefone, mostra contatos, matrículas e eventos no Aluno 360, e abre cadastro de aluno e pacote em diálogos. Consulta catálogo por unidade, ativa matrículas de demonstração e mostra/transiciona etapas e tarefas. Usa login Keycloak com Authorization Code + PKCE; o token fica somente na memória da página. Lista de alunos e linha do tempo têm paginação. Estados de carregamento, vazio, erro e acesso negado estão presentes.
+
+Os IDs de organização/unidade e o cliente OIDC estão fixos para o seed sintético local. A tela não é uma interface de produção: contrato assinado, regras comerciais reais, navegação por todos os domínios e um design system seguem pendentes. `scripts/check-web.test.mjs` verifica sintaxe do controlador e IDs usados no HTML; o fluxo visual foi inspecionado no navegador. Wireframes históricos em `docs/ux/wireframes.md`.

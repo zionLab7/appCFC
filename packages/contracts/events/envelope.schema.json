@@ -1,0 +1,19 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://gp-cfc.local/schemas/events/envelope.v1.json",
+  "title":"GP CFC domain event envelope v1",
+  "type":"object","additionalProperties":false,
+  "required":["eventId","eventType","occurredAt","organizationId","actor","correlationId","entity","payload"],
+  "properties":{
+    "eventId":{"type":"string","format":"uuid"},
+    "eventType":{"type":"string","pattern":"^[a-z]+(?:\\.[a-z_]+)+\\.v[0-9]+$"},
+    "occurredAt":{"type":"string","format":"date-time"},
+    "organizationId":{"type":"string","format":"uuid"},
+    "unitId":{"type":["string","null"],"format":"uuid"},
+    "actor":{"type":"object","required":["type","id"],"properties":{"type":{"enum":["user","worker","system"]},"id":{"type":"string"}},"additionalProperties":false},
+    "correlationId":{"type":"string","format":"uuid"},
+    "causationId":{"type":["string","null"],"format":"uuid"},
+    "entity":{"type":"object","required":["type","id"],"properties":{"type":{"type":"string"},"id":{"type":"string","format":"uuid"}},"additionalProperties":false},
+    "payload":{"type":"object"}
+  }
+}

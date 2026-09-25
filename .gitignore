@@ -1,0 +1,9 @@
+node_modules/
+.env
+dist/
+coverage/
+*.log
+.DS_Store
+apps/desktop/src-tauri/target/
+# Contexto recebido e referências históricas ficam somente nesta máquina.
+GP_CFC_CONTEXT/

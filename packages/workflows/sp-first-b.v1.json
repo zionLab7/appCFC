@@ -1,0 +1,12 @@
+{
+  "code":"SP_FIRST_B_DEMO","version":1,"serviceType":"FIRST_LICENSE",
+  "notice":"Exemplo técnico; validar etapas e regras oficiais antes do uso operacional",
+  "steps":[
+    {"code":"REGISTRATION","stage":"INICIAL","order":10,"prerequisites":[],"completeWhen":{"fact":"enrollment.activated.v1"},"actions":["VERIFY_DOCUMENTS"],"role":"SECRETARY"},
+    {"code":"DOCUMENTS","stage":"INICIAL","order":20,"prerequisites":["REGISTRATION"],"completeWhen":{"fact":"documents.accepted.v1"},"actions":["REQUEST_DOCUMENTS","ACCEPT_DOCUMENTS"],"role":"SECRETARY"},
+    {"code":"THEORY","stage":"TEORICO","order":30,"prerequisites":["DOCUMENTS"],"completeWhen":{"fact":"theory.completed.v1"},"actions":["CHECK_THEORY"],"role":"COORDINATOR"},
+    {"code":"PRACTICAL","stage":"PRATICA","order":40,"prerequisites":["THEORY"],"completeWhen":{"fact":"practical.requirement_met.v1"},"actions":["SCHEDULE_LESSON"],"role":"SECRETARY"},
+    {"code":"EXAM","stage":"EXAME","order":50,"prerequisites":["PRACTICAL"],"completeWhen":{"fact":"exam.approved.v1"},"actions":["REQUEST_EXAM"],"role":"SECRETARY"},
+    {"code":"ISSUANCE","stage":"EMISSAO","order":60,"prerequisites":["EXAM"],"completeWhen":{"fact":"license.issued.v1"},"actions":["TRACK_ISSUANCE"],"role":"SECRETARY"}
+  ]
+}

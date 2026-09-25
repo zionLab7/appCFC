@@ -1,0 +1,31 @@
+{
+  "name": "gp-cfc",
+  "private": true,
+  "version": "0.4.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "db:migrate": "node --env-file=.env scripts/migrate.mjs",
+    "db:seed": "node --env-file=.env scripts/seed.mjs",
+    "dev:api": "node --env-file=.env --import tsx --watch apps/api/src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test packages/domain/test/*.test.mjs scripts/check-contracts.test.mjs scripts/check-web.test.mjs && node --import tsx --test apps/api/test/*.test.ts",
+    "test:integration": "NODE_ENV=test node --import tsx --test apps/api/test/integration/*.test.ts",
+    "smoke:dev": "node --env-file=.env scripts/smoke-flow.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

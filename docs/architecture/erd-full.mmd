@@ -1,0 +1,703 @@
+erDiagram
+  app_user {
+    uuid id PK
+    string email
+    string display_name
+    string status
+    datetime created_at
+  }
+  audit_event {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid actor_user_id FK
+    string action
+    string entity_type
+    uuid entity_id
+    string reason
+    json before_json
+    json after_json
+    uuid correlation_id
+    datetime occurred_at
+  }
+  automation_attempt {
+    uuid id PK
+    uuid organization_id FK
+    uuid job_id FK
+    int attempt_number
+    datetime started_at
+    datetime finished_at
+    string error_class
+    string evidence_object_key
+  }
+  automation_job {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid process_id FK
+    string provider
+    string operation
+    string credential_ref
+    json request_json
+    string status
+    int attempt_count
+    datetime next_attempt_at
+    string idempotency_key
+    json result_json
+    datetime created_at
+  }
+  bank_reconciliation {
+    uuid id PK
+    uuid organization_id FK
+    uuid bank_transaction_id FK
+    uuid payment_id FK
+    uuid matched_by FK
+    datetime matched_at
+  }
+  bank_transaction {
+    uuid id PK
+    uuid organization_id FK
+    string external_id
+    datetime occurred_at
+    int amount_cents
+    string status
+  }
+  business_rule_version {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    string code
+    int version
+    json rule_json
+    datetime published_at
+  }
+  cash_entry {
+    uuid id PK
+    uuid organization_id FK
+    uuid session_id FK
+    string kind
+    int amount_cents
+    uuid payment_id FK
+    datetime occurred_at
+  }
+  cash_session {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid opened_by FK
+    datetime opened_at
+    datetime closed_at
+    int opening_cents
+    int closing_cents
+  }
+  communication_consent {
+    uuid id PK
+    uuid organization_id FK
+    uuid student_id FK
+    string channel
+    string purpose
+    string status
+    datetime occurred_at
+  }
+  communication_message {
+    uuid id PK
+    uuid organization_id FK
+    uuid thread_id FK
+    string direction
+    string status
+    string body_redacted
+    datetime occurred_at
+  }
+  communication_thread {
+    uuid id PK
+    uuid organization_id FK
+    uuid student_id FK
+    string channel
+    string provider_ref
+  }
+  contract {
+    uuid id PK
+    uuid organization_id FK
+    uuid enrollment_id FK
+    string status
+    uuid document_id FK
+    datetime signed_at
+  }
+  credit_ledger_entry {
+    uuid id PK
+    uuid organization_id FK
+    uuid wallet_id FK
+    string kind
+    int quantity
+    string source_type
+    uuid source_id
+    uuid reversal_of FK
+    datetime occurred_at
+  }
+  credit_reservation {
+    uuid id PK
+    uuid organization_id FK
+    uuid wallet_id FK
+    uuid lesson_id FK
+    int quantity
+    string status
+  }
+  credit_wallet {
+    uuid id PK
+    uuid organization_id FK
+    uuid enrollment_id FK
+    string item_type
+    datetime created_at
+  }
+  document {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    string owner_type
+    uuid owner_id
+    string kind
+    string status
+    int current_version
+    datetime created_at
+  }
+  document_version {
+    uuid id PK
+    uuid organization_id FK
+    uuid document_id FK
+    int version
+    string object_key
+    string sha256
+    int size_bytes
+    datetime uploaded_at
+  }
+  enrollment {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid student_id FK
+    uuid package_version_id FK
+    uuid quote_id FK
+    string status
+    int agreed_price_cents
+    datetime created_at
+    datetime activated_at
+    json package_snapshot
+  }
+  financial_account {
+    uuid id PK
+    uuid organization_id FK
+    string code
+    string name
+    string kind
+  }
+  idempotency_record {
+    uuid organization_id PK
+    string actor_key PK
+    string endpoint PK
+    string idempotency_key PK
+    string request_hash
+    int status_code
+    json response_json
+    datetime created_at
+  }
+  installment {
+    uuid id PK
+    uuid organization_id FK
+    uuid receivable_id FK
+    int number
+    date due_date
+    int amount_cents
+  }
+  integration_external_reference {
+    uuid id PK
+    uuid organization_id FK
+    string provider
+    string external_id
+    string entity_type
+    uuid entity_id
+  }
+  journal_entry {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    string source_type
+    uuid source_id
+    uuid reversal_of FK
+    string currency
+    datetime occurred_at
+  }
+  journal_line {
+    uuid id PK
+    uuid organization_id FK
+    uuid entry_id FK
+    uuid account_id FK
+    int debit_cents
+    int credit_cents
+  }
+  lead {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid person_id FK
+    string source
+    string status
+    datetime created_at
+  }
+  legal_entity {
+    uuid id PK
+    uuid organization_id FK
+    string name
+    string tax_id
+  }
+  lesson {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid student_id FK
+    uuid process_id FK
+    range during
+    string category
+    string status
+    datetime created_at
+  }
+  lesson_attendance {
+    uuid lesson_id PK
+    boolean student_present
+    boolean instructor_present
+    datetime checked_at
+  }
+  lesson_evaluation {
+    uuid lesson_id PK
+    json score
+    uuid instructor_user_id FK
+    datetime recorded_at
+  }
+  organization {
+    uuid id PK
+    string name
+    string timezone
+    datetime created_at
+  }
+  outbox_event {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    string type
+    string aggregate_type
+    uuid aggregate_id
+    json payload
+    datetime occurred_at
+    datetime published_at
+    int attempts
+    uuid actor_user_id FK
+    uuid correlation_id
+  }
+  package {
+    uuid id PK
+    uuid organization_id FK
+    uuid product_id FK
+    string name
+    boolean active
+    uuid unit_id FK
+  }
+  package_item {
+    uuid id PK
+    uuid organization_id FK
+    uuid package_version_id FK
+    string item_type
+    int quantity
+  }
+  package_version {
+    uuid id PK
+    uuid organization_id FK
+    uuid package_id FK
+    int version
+    int price_cents
+    string currency
+    json terms
+    datetime published_at
+  }
+  payable {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    string vendor_name
+    date due_date
+    int amount_cents
+    string status
+  }
+  payment {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    int amount_cents
+    string currency
+    string method
+    string status
+    string external_reference
+    datetime occurred_at
+  }
+  payment_allocation {
+    uuid id PK
+    uuid organization_id FK
+    uuid payment_id FK
+    uuid installment_id FK
+    int amount_cents
+  }
+  payment_allocation_reversal {
+    uuid id PK
+    uuid organization_id FK
+    uuid refund_id FK
+    uuid allocation_id FK
+    int amount_cents
+  }
+  payment_refund {
+    uuid id PK
+    uuid organization_id FK
+    uuid payment_id FK
+    int amount_cents
+    string reason
+    string external_reference
+    datetime occurred_at
+  }
+  permission {
+    string code PK
+    string description
+  }
+  person {
+    uuid id PK
+    uuid organization_id FK
+    string full_name
+    date birth_date
+    string document_kind
+    string document_number
+    datetime created_at
+    datetime updated_at
+  }
+  person_address {
+    uuid id PK
+    uuid organization_id FK
+    uuid person_id FK
+    string line1
+    string city
+    string state_code
+    string postal_code
+  }
+  person_contact {
+    uuid id PK
+    uuid organization_id FK
+    uuid person_id FK
+    string kind
+    string value
+    boolean is_primary
+  }
+  process {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid student_id FK
+    uuid enrollment_id FK
+    uuid workflow_version_id FK
+    string status
+    datetime created_at
+  }
+  process_step {
+    uuid id PK
+    uuid organization_id FK
+    uuid process_id FK
+    uuid definition_step_id FK
+    string status
+    datetime completed_at
+  }
+  process_transition {
+    uuid id PK
+    uuid organization_id FK
+    uuid process_step_id FK
+    string from_status
+    string to_status
+    string reason
+    uuid actor_user_id FK
+    datetime occurred_at
+    uuid correlation_id
+  }
+  product {
+    uuid id PK
+    uuid organization_id FK
+    string code
+    string name
+    string service_type
+  }
+  quote {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid lead_id FK
+    uuid package_version_id FK
+    int quoted_price_cents
+    string status
+    datetime created_at
+  }
+  receivable {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid enrollment_id FK
+    int amount_cents
+    string currency
+    string status
+    datetime created_at
+  }
+  resource {
+    uuid id PK
+    uuid organization_id FK
+    uuid home_unit_id FK
+    string kind
+    string name
+    string category
+    boolean active
+  }
+  resource_availability {
+    uuid id PK
+    uuid organization_id FK
+    uuid resource_id FK
+    int weekday
+    time starts_at
+    time ends_at
+    date valid_from
+    date valid_until
+  }
+  resource_block {
+    uuid id PK
+    uuid organization_id FK
+    uuid resource_id FK
+    range during
+    string reason
+  }
+  resource_booking {
+    uuid id PK
+    uuid organization_id FK
+    uuid lesson_id FK
+    uuid resource_id FK
+    range during
+    string status
+  }
+  role {
+    uuid id PK
+    uuid organization_id FK
+    string code
+    string name
+  }
+  role_permission {
+    uuid role_id PK
+    string permission_code PK
+  }
+  student {
+    uuid id PK
+    uuid organization_id FK
+    uuid person_id FK
+    uuid home_unit_id FK
+    datetime created_at
+  }
+  student_note {
+    uuid id PK
+    uuid organization_id FK
+    uuid student_id FK
+    string body
+    uuid author_user_id FK
+    datetime created_at
+  }
+  task {
+    uuid id PK
+    uuid organization_id FK
+    uuid unit_id FK
+    uuid process_id FK
+    string kind
+    string status
+    string assigned_role
+    uuid assigned_user_id FK
+    datetime due_at
+    json context
+    datetime created_at
+    uuid process_step_id FK
+  }
+  unit {
+    uuid id PK
+    uuid organization_id FK
+    uuid legal_entity_id FK
+    string code
+    string name
+    boolean active
+  }
+  user_identity {
+    string issuer PK
+    string subject PK
+    uuid user_id FK
+    datetime created_at
+  }
+  user_unit_membership {
+    uuid organization_id FK
+    uuid unit_id PK
+    uuid user_id PK
+    uuid role_id PK
+    boolean active
+  }
+  webhook_delivery {
+    uuid id PK
+    uuid organization_id FK
+    string provider
+    string external_id
+    boolean signature_valid
+    string payload_ref
+    datetime processed_at
+    datetime created_at
+  }
+  workflow_definition {
+    uuid id PK
+    uuid organization_id FK
+    string code
+    string service_type
+  }
+  workflow_step_definition {
+    uuid id PK
+    uuid organization_id FK
+    uuid workflow_version_id FK
+    string code
+    string label
+    string stage
+    int sort_order
+    json prerequisites
+    json completion_rule
+    json allowed_actions
+    string assigned_role
+    int sla_hours
+  }
+  workflow_version {
+    uuid id PK
+    uuid organization_id FK
+    uuid definition_id FK
+    int version
+    datetime published_at
+  }
+  app_user ||--o{ audit_event : references
+  app_user ||--o{ bank_reconciliation : references
+  app_user ||--o{ cash_session : references
+  app_user ||--o{ lesson_evaluation : references
+  app_user ||--o{ outbox_event : references
+  app_user ||--o{ process_transition : references
+  app_user ||--o{ student_note : references
+  app_user ||--o{ task : references
+  app_user ||--o{ user_identity : references
+  app_user ||--o{ user_unit_membership : references
+  automation_job ||--o{ automation_attempt : references
+  bank_transaction ||--o{ bank_reconciliation : references
+  cash_session ||--o{ cash_entry : references
+  communication_thread ||--o{ communication_message : references
+  credit_ledger_entry ||--o{ credit_ledger_entry : references
+  credit_wallet ||--o{ credit_ledger_entry : references
+  credit_wallet ||--o{ credit_reservation : references
+  document ||--o{ contract : references
+  document ||--o{ document_version : references
+  enrollment ||--o{ contract : references
+  enrollment ||--o{ credit_wallet : references
+  enrollment ||--o{ process : references
+  enrollment ||--o{ receivable : references
+  financial_account ||--o{ journal_line : references
+  installment ||--o{ payment_allocation : references
+  journal_entry ||--o{ journal_entry : references
+  journal_entry ||--o{ journal_line : references
+  lead ||--o{ quote : references
+  legal_entity ||--o{ unit : references
+  lesson ||--o{ credit_reservation : references
+  lesson ||--o{ lesson_attendance : references
+  lesson ||--o{ lesson_evaluation : references
+  lesson ||--o{ resource_booking : references
+  organization ||--o{ audit_event : references
+  organization ||--o{ automation_job : references
+  organization ||--o{ bank_transaction : references
+  organization ||--o{ business_rule_version : references
+  organization ||--o{ cash_session : references
+  organization ||--o{ communication_thread : references
+  organization ||--o{ document : references
+  organization ||--o{ enrollment : references
+  organization ||--o{ financial_account : references
+  organization ||--o{ idempotency_record : references
+  organization ||--o{ integration_external_reference : references
+  organization ||--o{ journal_entry : references
+  organization ||--o{ lead : references
+  organization ||--o{ legal_entity : references
+  organization ||--o{ lesson : references
+  organization ||--o{ outbox_event : references
+  organization ||--o{ package : references
+  organization ||--o{ payable : references
+  organization ||--o{ payment : references
+  organization ||--o{ person : references
+  organization ||--o{ process : references
+  organization ||--o{ product : references
+  organization ||--o{ quote : references
+  organization ||--o{ receivable : references
+  organization ||--o{ resource : references
+  organization ||--o{ role : references
+  organization ||--o{ task : references
+  organization ||--o{ unit : references
+  organization ||--o{ user_unit_membership : references
+  organization ||--o{ webhook_delivery : references
+  organization ||--o{ workflow_definition : references
+  package ||--o{ package_version : references
+  package_version ||--o{ enrollment : references
+  package_version ||--o{ package_item : references
+  package_version ||--o{ quote : references
+  payment ||--o{ bank_reconciliation : references
+  payment ||--o{ cash_entry : references
+  payment ||--o{ payment_allocation : references
+  payment ||--o{ payment_refund : references
+  payment_allocation ||--o{ payment_allocation_reversal : references
+  payment_refund ||--o{ payment_allocation_reversal : references
+  permission ||--o{ role_permission : references
+  person ||--o{ lead : references
+  person ||--o{ person_address : references
+  person ||--o{ person_contact : references
+  person ||--o{ student : references
+  process ||--o{ automation_job : references
+  process ||--o{ lesson : references
+  process ||--o{ process_step : references
+  process ||--o{ task : references
+  process_step ||--o{ process_transition : references
+  process_step ||--o{ task : references
+  product ||--o{ package : references
+  quote ||--o{ enrollment : references
+  receivable ||--o{ installment : references
+  resource ||--o{ resource_availability : references
+  resource ||--o{ resource_block : references
+  resource ||--o{ resource_booking : references
+  role ||--o{ role_permission : references
+  role ||--o{ user_unit_membership : references
+  student ||--o{ communication_consent : references
+  student ||--o{ communication_thread : references
+  student ||--o{ enrollment : references
+  student ||--o{ lesson : references
+  student ||--o{ process : references
+  student ||--o{ student_note : references
+  unit ||--o{ audit_event : references
+  unit ||--o{ automation_job : references
+  unit ||--o{ business_rule_version : references
+  unit ||--o{ cash_session : references
+  unit ||--o{ document : references
+  unit ||--o{ enrollment : references
+  unit ||--o{ journal_entry : references
+  unit ||--o{ lead : references
+  unit ||--o{ lesson : references
+  unit ||--o{ outbox_event : references
+  unit ||--o{ package : references
+  unit ||--o{ payable : references
+  unit ||--o{ payment : references
+  unit ||--o{ process : references
+  unit ||--o{ quote : references
+  unit ||--o{ receivable : references
+  unit ||--o{ resource : references
+  unit ||--o{ student : references
+  unit ||--o{ task : references
+  unit ||--o{ user_unit_membership : references
+  workflow_definition ||--o{ workflow_version : references
+  workflow_step_definition ||--o{ process_step : references
+  workflow_version ||--o{ process : references
+  workflow_version ||--o{ workflow_step_definition : references

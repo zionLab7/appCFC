@@ -1,0 +1,11 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://gp-cfc.local/schemas/events/catalog.version.published.v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["packageId","versionId","version"],
+  "properties":{
+    "packageId":{"type":"string","format":"uuid"},
+    "versionId":{"type":"string","format":"uuid"},
+    "version":{"type":"integer","minimum":1}
+  }
+}
