@@ -1,5 +1,5 @@
 import type { Pool } from 'pg';
-import { type Identity } from './auth.js';
+import { HttpError, type Identity } from './auth.js';
 import { requireUnit, uuid } from './operations.js';
 
 function safeCents(value: unknown): number {
@@ -38,4 +38,23 @@ export async function getOperationsReport(pool: Pool, identity: Identity, unitId
   const billedCents=safeCents(finance.rows[0].billed),paidCents=safeCents(finance.rows[0].paid);
   return {unitId,students:Number(students.rows[0].total),processes:processes.rows,steps:steps.rows,
     lessons:lessons.rows,finance:{billedCents,paidCents,outstandingCents:billedCents-paidCents}};
+}
+
+export async function getConsolidatedOperationsReport(pool: Pool,identity: Identity) {
+  const allowed=await pool.query(`SELECT DISTINCT un.id,un.name FROM user_unit_membership m
+    JOIN role_permission rp ON rp.role_id=m.role_id AND rp.permission_code='report.read'
+    JOIN unit un ON un.id=m.unit_id AND un.organization_id=m.organization_id
+    JOIN app_user u ON u.id=m.user_id
+    WHERE m.organization_id=$1 AND m.user_id=$2 AND m.active AND un.active AND u.status='ACTIVE'
+    ORDER BY un.name,un.id`,[identity.organizationId,identity.userId]);
+  if (!allowed.rowCount) throw new HttpError(403,'ACCESS_DENIED','Sem permissão para relatórios');
+  const reports=await Promise.all(allowed.rows.map(async unit=>({name:unit.name,
+    ...await getOperationsReport(pool,identity,unit.id)})));
+  const totals=reports.reduce((sum,report)=>({students:sum.students+report.students,
+    lessons:sum.lessons+report.lessons.reduce((n,row)=>n+Number(row.total),0),
+    billedCents:safeCents(sum.billedCents+report.finance.billedCents),
+    paidCents:safeCents(sum.paidCents+report.finance.paidCents),
+    outstandingCents:safeCents(sum.outstandingCents+report.finance.outstandingCents)}),
+    {students:0,lessons:0,billedCents:0,paidCents:0,outstandingCents:0});
+  return {unitCount:reports.length,totals,units:reports};
 }

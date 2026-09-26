@@ -1,4 +1,4 @@
-# GP CFC — Desenvolvimento v0.9
+# GP CFC — Desenvolvimento v0.10
 
 Continuação do Technical Design & Implementation Pack v0.1, derivada da **Especificação GP CFC v0.1**. Código e modelo são novos; o InforCFC serviu apenas para levantamento de necessidades. Estado: **fundação de desenvolvimento**, não produto pronto nem migração homologada.
 
@@ -7,7 +7,7 @@ Continuação do Technical Design & Implementation Pack v0.1, derivada da **Espe
 - Ambiente local PostgreSQL 16, Redis 7, Keycloak de desenvolvimento e S3Mock para testes de armazenamento via Docker Compose. PostgreSQL usa a porta local `55432` para não conflitar com instalações locais.
 - Migrations SQL controladas por versão (controle em `schema_migrations`) e dados fictícios de desenvolvimento.
 - API TypeScript com health/meta, cadastro, busca e linha do tempo do aluno, catálogo versionado por unidade, matrícula, workflow, fila de tarefas, créditos, recebível e pagamentos manuais sintéticos com estorno, instrutores/veículos e reserva/cancelamento/conclusão sintética de aula. Mutations usam token OIDC, permissões por unidade, auditoria e idempotência.
-- Interface local em `/app` com login Keycloak PKCE, visão inicial de prioridades, áreas de alunos, tarefas, agenda, catálogo e relatórios. O seletor de unidade vem dos vínculos autorizados da API e mantém a última escolha no navegador. O detalhe do aluno mostra documentos, matrículas, créditos e financeiro de demonstração.
+- Interface local em `/app` com login Keycloak PKCE, visão inicial de prioridades, áreas de alunos, tarefas, agenda, catálogo e relatórios por unidade e consolidados conforme permissão. O seletor de unidade vem dos vínculos autorizados da API e mantém a última escolha no navegador. O detalhe do aluno mostra documentos, matrículas, créditos e financeiro de demonstração.
 - Documentos por aluno ou matrícula: solicitação, versão privada em storage S3 compatível, SHA-256, revisão e download autorizado. Solicitar `CONTRACT` cria vínculo de contrato em rascunho, sem assinar.
 - Dispatcher opcional da outbox para webhook HTTPS com assinatura HMAC, lease, retry exponencial e ID estável; consumidores devem deduplicar por `eventId`.
 - Contratos OpenAPI e JSON Schema, exemplos de workflow, modelo de dados, regras e backlog de implementação.

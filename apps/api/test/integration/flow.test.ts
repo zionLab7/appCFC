@@ -9,7 +9,7 @@ import { getProcess,transitionProcess } from '../../src/processes.js';
 import { listTasks } from '../../src/tasks.js';
 import { getCredits,getFinance,receivePayment,refundPayment } from '../../src/finance.js';
 import { blockResource,bookLesson,cancelLesson,completeLesson,createResource,listResources,listStudentLessons } from '../../src/scheduling.js';
-import { getOperationsReport } from '../../src/reports.js';
+import { getConsolidatedOperationsReport, getOperationsReport } from '../../src/reports.js';
 import { requestDocument } from '../../src/documents.js';
 
 const url=process.env.GP_CFC_TEST_DATABASE_URL;
@@ -162,6 +162,7 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     assert.deepEqual(report.finance,{billedCents:1200,paidCents:1200,outstandingCents:0});
     assert.equal(report.lessons.find((x:{status:string})=>x.status==='COMPLETED').total,1);
     assert.equal(report.lessons.find((x:{status:string})=>x.status==='CANCELLED_BY_CFC').total,1);
+    assert.equal((await getConsolidatedOperationsReport(pool,identity)).unitCount,1);
     const process=await getProcess(pool,identity,first.processId);
     assert.deepEqual(process.steps.map((x:{status:string})=>x.status),['READY','NOT_STARTED']);
     assert.equal(process.tasks.length,1);
@@ -275,6 +276,14 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     assert.equal((await listTasks(pool,secondIdentity,new URLSearchParams({unitId:otherUnit}))).data.length,1);
     await assert.rejects(getEnrollment(pool,identity,enrollmentOther.id),{code:'ENROLLMENT_NOT_FOUND'});
     await assert.rejects(getProcess(pool,identity,activeOther.processId),{code:'PROCESS_NOT_FOUND'});
+    await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,
+      [org,otherUnit,user,role]);
+    const consolidated=await getConsolidatedOperationsReport(pool,identity);
+    assert.equal(consolidated.unitCount,2);
+    assert.equal(consolidated.totals.students,2);
+    assert.equal(consolidated.totals.billedCents,2400);
+    assert.equal(consolidated.totals.paidCents,1200);
+    assert.equal(consolidated.units.length,2);
     const org2=randomUUID(),unit3=randomUUID(),role3=randomUUID();
     await pool.query(`INSERT INTO organization(id,name) VALUES($1,'Outro tenant sintético')`,[org2]);
     await pool.query(`INSERT INTO unit(id,organization_id,code,name) VALUES($1,$2,'THREE','Terceira')`,[unit3,org2]);
@@ -283,6 +292,7 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org2,unit3,user,role3]);
     const otherTenant={organizationId:org2,userId:user};
     assert.deepEqual((await listCatalog(pool,otherTenant,unit3)).data,[]);
+    await assert.rejects(getConsolidatedOperationsReport(pool,otherTenant),{code:'ACCESS_DENIED'});
     await assert.rejects(getEnrollment(pool,otherTenant,draft.id),{code:'ENROLLMENT_NOT_FOUND'});
     await assert.rejects(getProcess(pool,otherTenant,first.processId),{code:'PROCESS_NOT_FOUND'});
     await assert.rejects(createEnrollment(pool,otherTenant,

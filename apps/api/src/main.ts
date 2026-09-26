@@ -10,7 +10,7 @@ import { getProcess, transitionProcess } from './processes.js';
 import { listTasks } from './tasks.js';
 import { getCredits, getFinance, receivePayment, refundPayment } from './finance.js';
 import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, listLessons, listResources, listStudentLessons } from './scheduling.js';
-import { getOperationsReport } from './reports.js';
+import { getConsolidatedOperationsReport, getOperationsReport } from './reports.js';
 import { downloadDocument, listDocuments, requestDocument, reviewDocument, uploadDocument } from './documents.js';
 import { listAccessibleUnits } from './access.js';
 
@@ -74,6 +74,8 @@ const server = createServer(async (req,res) => {
       return reply(res,200,await listTasks(pool,identity,url.searchParams),correlationId);
     if (url.pathname==='/api/v1/reports/operations' && req.method==='GET')
       return reply(res,200,await getOperationsReport(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
+    if (url.pathname==='/api/v1/reports/operations/consolidated' && req.method==='GET')
+      return reply(res,200,await getConsolidatedOperationsReport(pool,identity),correlationId);
     if (url.pathname==='/api/v1/documents' && req.method==='GET')
       return reply(res,200,await listDocuments(pool,identity,url.searchParams.get('unitId') ?? '',
         url.searchParams.get('ownerType') ?? '',url.searchParams.get('ownerId') ?? ''),correlationId);

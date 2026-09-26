@@ -213,7 +213,7 @@
       <section id="reportView" class="hidden"><div id="reportKpis" class="report-kpis"></div><div class="agenda-grid">
         <div class="card card-pad"><div class="catalog-head"><div><h2>Alunos por etapa</h2><p>Etapas abertas de processos ativos.</p></div></div><div id="reportSteps"></div></div>
         <div class="card card-pad"><div class="catalog-head"><div><h2>Aulas e processos</h2><p>Contagem por estado na unidade.</p></div></div><div id="reportActivity"></div></div>
-      </div></section>
+      </div><div class="card card-pad" style="margin-top:18px"><div class="catalog-head"><div><h2>Consolidado autorizado</h2><p>Soma apenas as unidades onde sua conta pode consultar relatórios.</p></div><button id="loadConsolidated" type="button" class="secondary small">Ver consolidado</button></div><div id="consolidatedReport"></div></div></section>
     </section>
   </main>
   <dialog id="studentDialog" aria-labelledby="studentDialogTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="studentDialogTitle">Cadastrar aluno</h2><p>Use somente dados fictícios neste ambiente.</p></div><button type="button" class="ghost small" data-close="studentDialog" aria-label="Fechar">✕</button></div><form id="studentForm" class="stack"><label>Nome completo<input name="fullName" required minlength="2" maxlength="200" autocomplete="off"></label><label>Telefone fictício (opcional)<input name="phone" autocomplete="off" placeholder="(11) 00000-0000"></label><p id="studentDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="studentDialog">Cancelar</button><button type="submit">Cadastrar aluno</button></div></form></div></dialog>
@@ -352,6 +352,20 @@
           for (const item of items) {const row=node('div',undefined,'task-row');row.append(node('strong',statusNames[item.status]||item.status),node('span',item.total,'count'));activity.append(row);}
         }
       } catch(error){if(unit()===requestedUnit){$('reportKpis').textContent=errorText(error);notice(errorText(error),'error');}}
+    }
+    async function loadConsolidated() {
+      const target=$('consolidatedReport'),button=$('loadConsolidated');button.disabled=true;target.textContent='Carregando consolidado…';
+      try {const report=await api('/reports/operations/consolidated');target.replaceChildren();
+        const kpis=node('div',undefined,'report-kpis');
+        for(const [label,value] of [['Unidades',report.unitCount],['Alunos',report.totals.students],
+          ['Aulas',report.totals.lessons],['A receber',money(report.totals.outstandingCents)]]){
+          const card=node('div',undefined,'metric');card.append(node('span',label),node('strong',value));kpis.append(card);
+        }target.append(kpis);
+        for(const item of report.units){const row=node('div',undefined,'task-row'),info=node('div');
+          info.append(node('strong',item.name),node('span',item.students+' aluno(s) · '+item.lessons.reduce((n,lesson)=>n+lesson.total,0)+' aula(s) · '+money(item.finance.outstandingCents)+' a receber','subtle'));
+          row.append(info);target.append(row);
+        }
+      }catch(error){target.textContent=errorText(error);}finally{button.disabled=false;}
     }
     async function loadAgenda() {
       const requestedUnit = unit(); $('agendaLessons').textContent = 'Carregando aulas…'; $('agendaResources').textContent = 'Carregando recursos…';
@@ -647,6 +661,7 @@
     for (const button of document.querySelectorAll('[data-view]')) button.onclick = () => setView(button.dataset.view);
     for (const button of document.querySelectorAll('[data-open-view]')) button.onclick = () => setView(button.dataset.openView);
     $('taskFilter').onchange = () => { void loadTasks(); }; $('taskOwner').onchange = () => { void loadTasks(); };
+    $('loadConsolidated').onclick = () => { void loadConsolidated(); };
     for (const button of document.querySelectorAll('[data-close]')) button.onclick = () => $(button.dataset.close).close();
     $('newStudent').onclick = () => { $('studentDialogStatus').classList.add('hidden'); $('studentDialog').showModal(); };
     $('newPackage').onclick = () => { $('catalogDialogStatus').classList.add('hidden'); $('catalogDialog').showModal(); };

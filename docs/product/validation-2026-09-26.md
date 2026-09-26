@@ -43,3 +43,7 @@ Pendências para o MVP operacional: provedor e evidência verificável de assina
 A v0.8 [passou no CI remoto](https://github.com/zionLab7/appCFC/actions/runs/36245649708). A API passou a listar apenas unidades ativas vinculadas ao usuário; a interface usa essa lista em vez de três IDs fixos. A entrada agora é uma visão de prioridades com atalhos, tarefas, aulas e indicadores; blocos sem permissão aparecem como indisponíveis. A lista inicial de alunos mostra 10 por vez. A tela nova foi aberta no navegador com token Keycloak e a troca de unidade foi observada. O teste integrado valida que vínculo removido some da lista de unidades. Ainda não há gestão de papéis/usuários pela UI nem aceite de UX da equipe GP.
 
 A v0.9 [passou no CI remoto](https://github.com/zionLab7/appCFC/actions/runs/36246060311). Após essa publicação, uma referência local de 100 leituras autenticadas por endpoint mediu p95 de 2,65 ms em alunos, 4,56 ms em tarefas e 4,40 ms em relatório; método e limites constam em [performance-baseline-2026-09-26.md](performance-baseline-2026-09-26.md). Isto não conclui o gate de performance do piloto.
+
+## Continuação v0.10 no mesmo dia
+
+O relatório operacional ganhou consolidação por unidades com `report.read` ativo, devolvendo também as parcelas por unidade. O teste integrado confirma uma unidade visível, nega a segunda antes da autorização e soma duas depois do vínculo, incluindo financeiro. A interface oferece acesso explícito ao consolidado na área Relatórios. As medições de latência anteriores não cobrem este novo endpoint.
