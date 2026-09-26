@@ -10,5 +10,6 @@ Continuação sobre a base v0.4, usando apenas alunos, pacotes e contas fictíci
 | `npm run test:integration` | 2 testes PostgreSQL passaram no banco `_test`: fila por unidade/papel/responsável, vencimento, paginação inclusive sem prazo, auditoria/outbox, concorrência e rollback |
 | `npm run smoke:dev` | Token Keycloak, fluxo HTTP, fila e eventos de tarefa passaram |
 | `/app` no navegador | Login, área de tarefas, lista e abertura do processo do aluno confirmados |
+| GitHub Actions | Execução [36239760004](https://github.com/zionLab7/appCFC/actions/runs/36239760004) passou no commit `b31bb48469d54564ca3ba90744e058ec072614e5` |
 
-As tarefas geradas por processos anteriores à v0.5 continuam existentes, mas só as tarefas criadas ou fechadas após esta versão possuem eventos próprios `task.created.v1` e `task.closed.v1`. O dispatcher da outbox, CI remoto, staging, p95, assinatura real e demais fluxos do MVP seguem pendentes.
+As tarefas geradas por processos anteriores à v0.5 continuam existentes, mas só as tarefas criadas ou fechadas após esta versão possuem eventos próprios `task.created.v1` e `task.closed.v1`. O dispatcher da outbox, staging, p95, assinatura real e demais fluxos do MVP seguem pendentes.
