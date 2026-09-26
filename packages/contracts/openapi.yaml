@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GP CFC API
-  version: 0.10.0
+  version: 0.11.0
   description: Rotas marcadas implemented funcionam na API local; demais rotas são alvo de produto.
 servers:
   - url: http://localhost:3000
@@ -291,12 +291,48 @@ paths:
       parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: resourceId, in: path, required: true, schema: { type: string, format: uuid } } ]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,startsAt,endsAt,reason], properties: { unitId: { type: string, format: uuid }, startsAt: { type: string, format: date-time }, endsAt: { type: string, format: date-time }, reason: { type: string } } } } } }
       responses: { '201': { description: Bloqueio criado se não conflita com reserva ativa }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/scheduling/candidates:
+    get:
+      operationId: listSchedulingCandidates
+      x-implementation-status: implemented
+      description: Processos ativos e carteiras de aula da unidade autorizada para iniciar marcação diretamente na agenda.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Até 200 processos elegíveis, com saldo disponível por carteira }, '403': { $ref: '#/components/responses/Problem' } }
+  /api/v1/practical-exams:
+    get:
+      operationId: listPracticalExams
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' }, { name: day, in: query, schema: { type: string, format: date } } ]
+      responses: { '200': { description: Até 200 exames internos da unidade ou do dia informado }, '403': { $ref: '#/components/responses/Problem' } }
+    post:
+      operationId: schedulePracticalExam
+      x-implementation-status: implemented
+      x-development-only: true
+      description: Agenda interna sintética; não reserva vaga em órgão oficial. Requer processo ativo e recursos disponíveis.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SchedulePracticalExam' } } } }
+      responses: { '201': { description: Exame interno agendado com recursos bloqueados }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/practical-exams/{examId}/cancel:
+    post:
+      operationId: cancelPracticalExam
+      x-implementation-status: implemented
+      parameters: [ { name: examId, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,reason], properties: { unitId: { type: string, format: uuid }, reason: { type: string, minLength: 2 } } } } } }
+      responses: { '200': { description: Exame interno cancelado e recursos liberados }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/practical-exams/{examId}/result:
+    post:
+      operationId: recordPracticalExamResult
+      x-implementation-status: implemented
+      description: Resultado interno após o horário do exame; não substitui registro oficial.
+      parameters: [ { name: examId, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,result], properties: { unitId: { type: string, format: uuid }, result: { type: string, enum: [PASSED,FAILED] } } } } } }
+      responses: { '200': { description: Resultado auditado e evento emitido }, '409': { $ref: '#/components/responses/Problem' } }
   /api/v1/lessons:
     get:
       operationId: listLessons
       x-implementation-status: implemented
-      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
-      responses: { '200': { description: Até 100 aulas da unidade a partir dos últimos sete dias } }
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' }, { name: day, in: query, schema: { type: string, format: date } } ]
+      responses: { '200': { description: Até 100 aulas da unidade a partir dos últimos sete dias ou do dia informado } }
     post:
       operationId: bookLesson
       x-implementation-status: implemented
@@ -526,6 +562,19 @@ components:
         category: { type: string }
         startsAt: { type: string, format: date-time }
         endsAt: { type: string, format: date-time }
+        instructorId: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+    SchedulePracticalExam:
+      type: object
+      required: [unitId,studentId,processId,startsAt,endsAt,category,location,instructorId,vehicleId]
+      properties:
+        unitId: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        processId: { type: string, format: uuid }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        category: { type: string, maxLength: 20 }
+        location: { type: string, minLength: 2, maxLength: 160 }
         instructorId: { type: string, format: uuid }
         vehicleId: { type: string, format: uuid }
     CreateResource:

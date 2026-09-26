@@ -8,7 +8,8 @@ import { activateEnrollment,createEnrollment,getEnrollment } from '../../src/enr
 import { getProcess,transitionProcess } from '../../src/processes.js';
 import { listTasks } from '../../src/tasks.js';
 import { getCredits,getFinance,receivePayment,refundPayment } from '../../src/finance.js';
-import { blockResource,bookLesson,cancelLesson,completeLesson,createResource,listResources,listStudentLessons } from '../../src/scheduling.js';
+import { blockResource,bookLesson,cancelLesson,completeLesson,createResource,listLessons,listResources,listSchedulingCandidates,listStudentLessons } from '../../src/scheduling.js';
+import { cancelPracticalExam,listPracticalExams,recordPracticalExamResult,schedulePracticalExam } from '../../src/practical-exams.js';
 import { getConsolidatedOperationsReport, getOperationsReport } from '../../src/reports.js';
 import { requestDocument } from '../../src/documents.js';
 
@@ -35,6 +36,8 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
       ($1,'resource.read'),($1,'resource.write'),($1,'lesson.read'),($1,'lesson.book'),($1,'lesson.cancel'),($1,'lesson.complete')`,[role]);
     await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'report.read')`,[role]);
     await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'document.write')`,[role]);
+    await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES
+      ($1,'exam.read'),($1,'exam.schedule'),($1,'exam.cancel'),($1,'exam.result')`,[role]);
     await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org,unit,user,role]);
     const wf=randomUUID(),wfVersion=randomUUID();
     await pool.query(`INSERT INTO workflow_definition(id,organization_id,code,service_type) VALUES($1,$2,'DEMO','TEST_SERVICE')`,[wf,org]);
@@ -89,6 +92,9 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const wallets=await getCredits(pool,identity,draft.id,unit);
     assert.deepEqual(wallets.data.map((w:{itemType:string;balance:number;held:number;available:number})=>
       [w.itemType,w.balance,w.held,w.available]),[['LESSON',3,0,3]]);
+    const candidates=await listSchedulingCandidates(pool,identity,unit);
+    assert.equal(candidates.data[0].processId,first.processId);
+    assert.equal(candidates.data[0].wallets[0].available,3);
     const finances=await getFinance(pool,identity,draft.id,unit);
     assert.equal(finances.data.length,1);
     assert.equal(finances.data[0].amountCents,1200);
@@ -133,6 +139,8 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     assert.equal(bookings.filter(x=>x.status==='fulfilled').length,1);
     assert.equal(bookings.filter(x=>x.status==='rejected').length,1);
     const lesson=(bookings.find(x=>x.status==='fulfilled') as PromiseFulfilledResult<Awaited<ReturnType<typeof bookLesson>>>).value;
+    assert.equal((await listLessons(pool,identity,unit,lessonDate)).data.find((item:{id:string})=>item.id===lesson.id).id,lesson.id);
+    await assert.rejects(listLessons(pool,identity,unit,'2026-02-31'),{code:'INVALID_DATE'});
     assert.equal((await getCredits(pool,identity,draft.id,unit)).data[0].held,1);
     assert.equal((await listStudentLessons(pool,identity,student.id,unit)).data[0].id,lesson.id);
     await assert.rejects(blockResource(pool,identity,vehicle.id,
@@ -157,6 +165,35 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const afterLesson=await getCredits(pool,identity,draft.id,unit);
     assert.deepEqual([afterLesson.data[0].available,afterLesson.data[0].held,afterLesson.data[0].consumed],[2,0,1]);
     assert.equal((await listStudentLessons(pool,identity,student.id,unit)).data[0].status,'COMPLETED');
+    const examInput={unitId:unit,studentId:student.id,processId:first.processId,
+      startsAt:lessonDate+'T18:00:00.000Z',endsAt:lessonDate+'T19:00:00.000Z',
+      category:'B',location:'Ponto de apresentação sintético',instructorId:instructor.id,vehicleId:vehicle.id};
+    const examKeys=[key(),key()];
+    const examRace=await Promise.allSettled(examKeys.map(examKey=>
+      schedulePracticalExam(pool,identity,examInput,examKey,corr())));
+    assert.equal(examRace.filter(item=>item.status==='fulfilled').length,1);
+    assert.equal(examRace.filter(item=>item.status==='rejected').length,1);
+    const winningIndex=examRace.findIndex(item=>item.status==='fulfilled');
+    const exam=(examRace[winningIndex] as PromiseFulfilledResult<Awaited<ReturnType<typeof schedulePracticalExam>>>).value;
+    assert.deepEqual(await schedulePracticalExam(pool,identity,examInput,examKeys[winningIndex],corr()),exam);
+    assert.equal((await listPracticalExams(pool,identity,unit)).data.find((item:{id:string})=>item.id===exam.id).status,'SCHEDULED');
+    assert.equal((await listPracticalExams(pool,identity,unit,lessonDate)).data.find((item:{id:string})=>item.id===exam.id).id,exam.id);
+    await assert.rejects(listPracticalExams(pool,identity,unit,'2026-02-31'),{code:'INVALID_DATE'});
+    await assert.rejects(bookLesson(pool,identity,{...lessonInput,startsAt:examInput.startsAt,endsAt:examInput.endsAt},key(),corr()),
+      {code:'STUDENT_EXAM_CONFLICT'});
+    await assert.rejects(schedulePracticalExam(pool,identity,examInput,key(),corr()),{code:'STUDENT_EXAM_CONFLICT'});
+    await assert.rejects(schedulePracticalExam(pool,identity,{...examInput,unitId:otherUnit},key(),corr()),{code:'ACCESS_DENIED'});
+    const cancelledExam=await cancelPracticalExam(pool,identity,exam.id,{unitId:unit,reason:'Reagendamento sintético'},key(),corr());
+    assert.equal(cancelledExam.status,'CANCELLED');
+    assert.equal((await pool.query(`SELECT count(*)::integer AS n FROM resource_block WHERE practical_exam_id=$1`,[exam.id])).rows[0].n,0);
+    const nextExam=await schedulePracticalExam(pool,identity,examInput,key(),corr());
+    await pool.query(`UPDATE practical_exam SET during=tstzrange(now()-interval '2 hours',now()-interval '1 hour','[)') WHERE id=$1`,[nextExam.id]);
+    const result=await recordPracticalExamResult(pool,identity,nextExam.id,{unitId:unit,result:'PASSED'},key(),corr());
+    assert.deepEqual(result,{id:nextExam.id,status:'COMPLETED',result:'PASSED'});
+    const examEvents=await pool.query(`SELECT type FROM outbox_event WHERE organization_id=$1 AND aggregate_id IN ($2,$3)`,
+      [org,exam.id,nextExam.id]);
+    assert.deepEqual(examEvents.rows.map((row:{type:string})=>row.type).sort(),
+      ['practical_exam.cancelled.v1','practical_exam.result_recorded.v1','practical_exam.scheduled.v1','practical_exam.scheduled.v1']);
     const report=await getOperationsReport(pool,identity,unit);
     assert.equal(report.students,1);
     assert.deepEqual(report.finance,{billedCents:1200,paidCents:1200,outstandingCents:0});

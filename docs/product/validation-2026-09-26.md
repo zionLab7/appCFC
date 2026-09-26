@@ -26,6 +26,12 @@ As tarefas geradas por processos anteriores à v0.5 continuam existentes, mas s�
 
 O vencimento de 30 dias, presença confirmada e políticas de cancelamento/estorno são hipóteses **somente de demonstração**. Operações de ativação, pagamento/estorno e aula são recusadas fora de `development`/`test`. Matrículas ativadas em versões anteriores não recebem backfill automático. O CI remoto da v0.6 será registrado depois da publicação.
 
+## Continuação v0.11 — marcação direta e exames práticos
+
+A migration 021 foi aplicada no PostgreSQL de desenvolvimento e em `gpcfc_fresh_test`, seguida de seed fictício. `npm run typecheck`, `npm test` (10 testes locais), `npm run test:integration` (4 suítes PostgreSQL no banco `_test`) e validação YAML do OpenAPI passaram. O teste integrado cobre concorrência de exame, conflito com aula, filtro por dia, idempotência, isolamento de unidade, cancelamento com liberação de recursos, resultado e eventos de outbox.
+
+`npm run smoke:dev` passou com token do Keycloak e dados sintéticos. No navegador, foi possível marcar diretamente uma aula em 05/10/2026 às 10h e um exame prático interno em 06/10/2026 às 10h, ambos visíveis na Agenda; o filtro de 06/10 retornou o exame, e seu cancelamento pela caixa de diálogo atualizou o estado para Cancelado. Nenhum dado real foi usado. A agenda de exame não interage com órgão oficial. Regras de elegibilidade, políticas comerciais e horários reais ainda aguardam validação da equipe GP antes do piloto. Assinatura digital foi retirada do escopo do MVP por decisão do usuário.
+
 ## Continuação v0.7 no mesmo dia
 
 A v0.6 [passou no CI remoto](https://github.com/zionLab7/appCFC/actions/runs/36244137353). A migration 017, o seed e a migration 018 foram aplicados no banco de desenvolvimento e em `gpcfc_fresh_test`. O relatório por unidade passou em teste integrado, smoke HTTP com token e inspeção visual da quinta aba. O dispatcher passou em teste integrado de falha, retry, lease concorrente e ID estável; a assinatura HMAC foi verificada contra um receptor HTTP local. `npm run typecheck` e `npm test` passaram após essa mudança. Nenhum webhook externo foi configurado ou chamado.

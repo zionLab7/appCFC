@@ -1,0 +1,7 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://gp-cfc.local/schemas/events/practical_exam.result_recorded.v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["examId","studentId","result"],
+  "properties":{"examId":{"type":"string","format":"uuid"},"studentId":{"type":"string","format":"uuid"},"result":{"enum":["PASSED","FAILED"]}}
+}

@@ -68,6 +68,24 @@ export async function listResources(pool: Pool, identity: Identity, unitId: stri
   return {data:result.rows};
 }
 
+export async function listSchedulingCandidates(pool: Pool, identity: Identity, unitId: string) {
+  uuid(unitId,'Unidade'); await requireUnit(pool,identity,unitId,'student.read');
+  await requireUnit(pool,identity,unitId,'credit.read');
+  const result=await pool.query(`SELECT p.id AS "processId",p.student_id AS "studentId",
+    p.enrollment_id AS "enrollmentId",person.full_name AS "studentName",
+    coalesce((SELECT jsonb_agg(jsonb_build_object('id',w.id,'itemType',w.item_type,
+      'available',coalesce((SELECT sum(quantity) FROM credit_ledger_entry WHERE wallet_id=w.id),0)-
+        coalesce((SELECT sum(quantity) FROM credit_reservation WHERE wallet_id=w.id AND status='HELD'),0))
+      ORDER BY w.item_type) FROM credit_wallet w WHERE w.organization_id=p.organization_id
+        AND w.enrollment_id=p.enrollment_id AND w.item_type LIKE 'LESSON%'),'[]'::jsonb) AS wallets
+    FROM process p JOIN enrollment e ON e.id=p.enrollment_id AND e.organization_id=p.organization_id
+    JOIN student s ON s.id=p.student_id AND s.organization_id=p.organization_id
+    JOIN person ON person.id=s.person_id AND person.organization_id=s.organization_id
+    WHERE p.organization_id=$1 AND p.unit_id=$2 AND p.status='ACTIVE' AND e.status='ACTIVE'
+    ORDER BY person.full_name,p.created_at DESC LIMIT 200`,[identity.organizationId,unitId]);
+  return {data:result.rows};
+}
+
 export async function blockResource(pool: Pool, identity: Identity, resourceId: string, raw: unknown,
   key: string | undefined, correlationId: string) {
   uuid(resourceId,'Recurso'); const v=object(raw); only(v,['unitId','startsAt','endsAt','reason']);
@@ -114,6 +132,12 @@ export async function bookLesson(pool: Pool, identity: Identity, raw: unknown,
           AND p.status='ACTIVE' AND e.status='ACTIVE'`,
         [processId,identity.organizationId,unitId,studentId]);
       if (!process.rowCount) throw new HttpError(404,'PROCESS_NOT_ACTIVE','Processo ativo não encontrado nesta unidade');
+      await db.query(`SELECT id FROM student WHERE id=$1 AND organization_id=$2 FOR UPDATE`,
+        [studentId,identity.organizationId]);
+      const examConflict=await db.query(`SELECT 1 FROM practical_exam WHERE organization_id=$1
+        AND student_id=$2 AND status='SCHEDULED' AND during && tstzrange($3,$4,'[)') LIMIT 1`,
+        [identity.organizationId,studentId,startsAt,endsAt]);
+      if (examConflict.rowCount) throw new HttpError(409,'STUDENT_EXAM_CONFLICT','Aluno já tem exame prático neste horário');
       const wallet=await db.query(`SELECT 1 FROM credit_wallet WHERE id=$1 AND organization_id=$2
         AND enrollment_id=$3 AND item_type LIKE 'LESSON%'`,
         [walletId,identity.organizationId,process.rows[0].enrollment_id]);
@@ -246,8 +270,12 @@ export async function listStudentLessons(pool: Pool, identity: Identity, student
   return {data:result.rows};
 }
 
-export async function listLessons(pool: Pool, identity: Identity, unitId: string) {
+export async function listLessons(pool: Pool, identity: Identity, unitId: string, day = '') {
   uuid(unitId,'Unidade'); await requireUnit(pool,identity,unitId,'lesson.read');
+  const parsedDay=Date.parse(day+'T12:00:00Z');
+  if (day && (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(parsedDay) ||
+    new Date(parsedDay).toISOString().slice(0,10)!==day))
+    throw new HttpError(400,'INVALID_DATE','Dia inválido');
   const result=await pool.query(`SELECT l.id,l.student_id AS "studentId",p.full_name AS "studentName",
     l.process_id AS "processId",l.status,l.category,
     lower(l.during) AS "startsAt",upper(l.during) AS "endsAt",
@@ -258,8 +286,10 @@ export async function listLessons(pool: Pool, identity: Identity, unitId: string
     LEFT JOIN resource_booking b ON b.lesson_id=l.id AND b.organization_id=l.organization_id
     LEFT JOIN resource r ON r.id=b.resource_id AND r.organization_id=b.organization_id
     WHERE l.organization_id=$1 AND l.unit_id=$2
-      AND lower(l.during)>=now()-interval '7 days'
+      AND (($3='' AND lower(l.during)>=now()-interval '7 days') OR
+        ($3<>'' AND lower(l.during)>=(nullif($3,'')::date::timestamp AT TIME ZONE 'America/Sao_Paulo')
+          AND lower(l.during)<((nullif($3,'')::date+1)::timestamp AT TIME ZONE 'America/Sao_Paulo')))
     GROUP BY l.id,p.full_name ORDER BY lower(l.during),l.id LIMIT 100`,
-    [identity.organizationId,unitId]);
+    [identity.organizationId,unitId,day]);
   return {data:result.rows};
 }

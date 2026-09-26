@@ -9,7 +9,8 @@ import { activateEnrollment, createEnrollment, getEnrollment } from './enrollmen
 import { getProcess, transitionProcess } from './processes.js';
 import { listTasks } from './tasks.js';
 import { getCredits, getFinance, receivePayment, refundPayment } from './finance.js';
-import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, listLessons, listResources, listStudentLessons } from './scheduling.js';
+import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, listLessons, listResources, listSchedulingCandidates, listStudentLessons } from './scheduling.js';
+import { cancelPracticalExam, listPracticalExams, recordPracticalExamResult, schedulePracticalExam } from './practical-exams.js';
 import { getConsolidatedOperationsReport, getOperationsReport } from './reports.js';
 import { downloadDocument, listDocuments, requestDocument, reviewDocument, uploadDocument } from './documents.js';
 import { listAccessibleUnits } from './access.js';
@@ -50,7 +51,7 @@ const server = createServer(async (req,res) => {
     if (req.method==='GET' && url.pathname==='/health/live') return reply(res,200,{status:'ok'},correlationId);
     if (req.method==='GET' && url.pathname==='/health/ready') {
       try {
-        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='020_document_invariants.sql'`);
+        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='021_practical_exam_agenda.sql'`);
         if (!migration.rowCount) throw new Error('Schema is not current');
         return reply(res,200,{status:'ready'},correlationId);
       } catch { return reply(res,503,{code:'DATABASE_UNAVAILABLE',message:'Banco ou migrations indisponíveis',correlationId},correlationId); }
@@ -99,6 +100,18 @@ const server = createServer(async (req,res) => {
     }
     if (url.pathname==='/api/v1/resources' && req.method==='GET')
       return reply(res,200,await listResources(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
+    if (url.pathname==='/api/v1/scheduling/candidates' && req.method==='GET')
+      return reply(res,200,await listSchedulingCandidates(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
+    if (url.pathname==='/api/v1/practical-exams' && req.method==='GET')
+      return reply(res,200,await listPracticalExams(pool,identity,url.searchParams.get('unitId') ?? '',url.searchParams.get('day') ?? ''),correlationId);
+    if (url.pathname==='/api/v1/practical-exams' && req.method==='POST')
+      return reply(res,201,await schedulePracticalExam(pool,identity,await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const examCancel=/^\/api\/v1\/practical-exams\/([^/]+)\/cancel$/.exec(url.pathname);
+    if (examCancel && req.method==='POST')
+      return reply(res,200,await cancelPracticalExam(pool,identity,examCancel[1],await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const examResult=/^\/api\/v1\/practical-exams\/([^/]+)\/result$/.exec(url.pathname);
+    if (examResult && req.method==='POST')
+      return reply(res,200,await recordPracticalExamResult(pool,identity,examResult[1],await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
     if (url.pathname==='/api/v1/resources' && req.method==='POST')
       return reply(res,201,await createResource(pool,identity,await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
     const resourceBlocks=/^\/api\/v1\/resources\/([^/]+)\/blocks$/.exec(url.pathname);
@@ -107,7 +120,7 @@ const server = createServer(async (req,res) => {
     if (url.pathname==='/api/v1/lessons' && req.method==='POST')
       return reply(res,201,await bookLesson(pool,identity,await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
     if (url.pathname==='/api/v1/lessons' && req.method==='GET')
-      return reply(res,200,await listLessons(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
+      return reply(res,200,await listLessons(pool,identity,url.searchParams.get('unitId') ?? '',url.searchParams.get('day') ?? ''),correlationId);
     const lessonCancel=/^\/api\/v1\/lessons\/([^/]+)\/cancel$/.exec(url.pathname);
     if (lessonCancel && req.method==='POST')
       return reply(res,200,await cancelLesson(pool,identity,lessonCancel[1],await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);

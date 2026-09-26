@@ -155,8 +155,33 @@
     #login h1 { font-size: 1.5rem; }
     #login p { color: #68818e; font-size: .9rem; line-height: 1.5; }
     #login button { margin-top: 8px; }
-    @media (max-width: 900px) { .student-layout, .agenda-grid, .home-columns { grid-template-columns: 1fr; } .page-head { align-items: start; } }
-    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } .report-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+    .agenda-hero { display:flex; justify-content:space-between; align-items:center; gap:24px; border-radius:20px; padding:29px 32px; margin-bottom:18px; background:linear-gradient(110deg,#10354b 0%,#155c62 65%,#148b7c 100%); color:#fff; box-shadow:0 14px 38px #10354b20; }
+    .agenda-hero .eyebrow { color:#a9eee1; }
+    .agenda-hero h2 { font-size:clamp(1.5rem,2.2vw,2rem); letter-spacing:-.035em; margin-bottom:8px; }
+    .agenda-hero p { color:#d6e9eb; line-height:1.5; margin:0; max-width:530px; font-size:.88rem; }
+    .agenda-actions { display:flex; gap:10px; flex-wrap:wrap; flex-shrink:0; }
+    .agenda-actions button { min-height:46px; padding:10px 17px; background:#fff; color:#12565c; }
+    .agenda-actions button:hover { background:#e6f7f2; }
+    .agenda-actions button.secondary { background:#ffffff20; border:1px solid #ffffff88; color:#fff; }
+    .agenda-actions button.secondary:hover { background:#ffffff30; }
+    .agenda-toolbar { display:flex; align-items:end; gap:12px; flex-wrap:wrap; margin:0 0 18px; }
+    .agenda-switch { display:flex; gap:4px; padding:4px; border:1px solid #dce8e9; background:#eaf1f1; border-radius:12px; margin-right:auto; }
+    .agenda-switch button { background:transparent; color:#45636c; padding:10px 14px; font-size:.85rem; }
+    .agenda-switch button:hover { background:#dbe9e9; }
+    .agenda-switch button.active { background:#fff; color:#075f58; box-shadow:0 2px 8px #12333a15; }
+    .agenda-toolbar label { min-width:158px; }
+    .agenda-toolbar input { padding:9px; }
+    #agendaLessonPanel, #agendaExamPanel, #agendaResourcePanel { min-height:230px; }
+    .agenda-item { display:grid; grid-template-columns:90px minmax(0,1fr) auto; align-items:center; gap:16px; padding:17px 0; border-top:1px solid #e8eff1; }
+    .agenda-when { color:#0b6963; font-size:.82rem; font-weight:800; border-radius:10px; padding:9px; background:#e9f7f3; text-align:center; }
+    .agenda-when span { display:block; font-size:1.16rem; color:#164657; }
+    .agenda-item strong { display:block; font-size:.94rem; margin-bottom:4px; }
+    .agenda-item .subtle { line-height:1.5; }
+    .agenda-empty { display:grid; justify-items:center; text-align:center; gap:9px; padding:42px 20px; color:#6b8490; }
+    .agenda-empty strong { color:#234858; font-size:1rem; }
+    .agenda-empty p { max-width:360px; margin:0 0 5px; font-size:.86rem; line-height:1.5; }
+    @media (max-width: 900px) { .student-layout, .agenda-grid, .home-columns { grid-template-columns: 1fr; } .page-head { align-items: start; } .agenda-hero { align-items:flex-start; flex-direction:column; } }
+    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } .report-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .agenda-hero { padding:23px; } .agenda-actions { width:100%; } .agenda-actions button { flex:1 1 160px; } .agenda-switch { width:100%; overflow-x:auto; } .agenda-switch button { flex:1; white-space:nowrap; } .agenda-toolbar label { flex:1; } .agenda-item { grid-template-columns:72px 1fr; align-items:start; gap:10px; } .agenda-item .row-actions { grid-column:2; justify-content:start; } }
   </style>
 </head>
 <body>
@@ -180,7 +205,7 @@
       <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="home" class="active" aria-current="page">Início</button><button type="button" data-view="students">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="agenda">Agenda</button><button type="button" data-view="catalog">Catálogo</button><button type="button" data-view="reports">Relatórios</button></nav>
       <div id="notice" role="status" class="notice hidden"></div>
       <section id="homeView">
-        <div class="home-hero"><h2>Prioridades da unidade</h2><p>Veja a fila da unidade e abra rapidamente alunos, tarefas ou agenda. Este ambiente usa apenas dados fictícios.</p><div class="home-actions"><button type="button" data-open-view="students">Abrir alunos</button><button type="button" data-open-view="tasks" class="secondary">Ver tarefas</button><button type="button" data-open-view="agenda" class="secondary">Ver agenda</button></div></div>
+        <div class="home-hero"><h2>O que precisa acontecer hoje?</h2><p>Comece pelas tarefas ou marque o próximo horário. Este ambiente usa apenas dados fictícios.</p><div class="home-actions"><button type="button" id="homeBook">+ Marcar aula</button><button type="button" id="homeExam" class="secondary">+ Marcar exame</button><button type="button" data-open-view="tasks" class="secondary">Ver tarefas</button><button type="button" data-open-view="students" class="secondary">Abrir alunos</button></div></div>
         <div id="homeKpis" class="report-kpis" aria-live="polite"></div>
         <div class="home-columns"><div class="card card-pad"><div class="card-head"><div><h2>Tarefas abertas</h2><p>Próximas ações da equipe.</p></div><button type="button" data-open-view="tasks" class="small secondary">Abrir fila</button></div><div id="homeTasks" class="home-list"></div></div>
           <div class="card card-pad"><div class="card-head"><div><h2>Aulas recentes e futuras</h2><p>Acompanhe reservas da unidade.</p></div><button type="button" data-open-view="agenda" class="small secondary">Abrir agenda</button></div><div id="homeLessons" class="home-list"></div></div></div>
@@ -203,9 +228,12 @@
           <div id="tasks" aria-live="polite"></div>
         </div>
       </section>
-      <section id="agendaView" class="agenda-grid hidden">
-        <div class="card card-pad"><div class="catalog-head"><div><h2>Aulas da unidade</h2><p>Reservas futuras e aulas dos últimos sete dias.</p></div></div><div id="agendaLessons"></div></div>
-        <div class="card card-pad"><div class="catalog-head"><div><h2>Instrutores e veículos</h2><p>Cadastre disponibilidade e bloqueie horários.</p></div><button id="newResource" type="button" class="small">+ Recurso</button></div><div id="agendaResources"></div></div>
+      <section id="agendaView" class="hidden">
+        <div class="agenda-hero"><div><span class="eyebrow">Agenda da unidade</span><h2>Organize os próximos atendimentos</h2><p>Marque aulas e exames internos sem sair da agenda. Os horários são conferidos ao salvar.</p></div><div class="agenda-actions"><button id="newBooking" type="button">+ Marcar aula</button><button id="newExam" type="button" class="secondary">+ Marcar exame prático</button></div></div>
+        <div class="agenda-toolbar"><div class="agenda-switch" role="tablist" aria-label="Tipo de agenda"><button id="showLessons" type="button" class="active" role="tab" aria-selected="true">Aulas <span id="lessonCount"></span></button><button id="showExams" type="button" role="tab" aria-selected="false">Exames práticos <span id="examCount"></span></button><button id="showResources" type="button" role="tab" aria-selected="false">Equipe e veículos</button></div><label>Dia<input id="agendaDate" type="date" aria-label="Filtrar agenda por dia"></label><button id="clearAgendaDate" type="button" class="ghost small">Todos os dias</button></div>
+        <div id="agendaLessonPanel" class="card card-pad"><div class="catalog-head"><div><h2>Aulas agendadas</h2><p>Reservas da unidade e aulas recentes.</p></div></div><div id="agendaLessons"></div></div>
+        <div id="agendaExamPanel" class="card card-pad hidden"><div class="catalog-head"><div><h2>Exames práticos</h2><p>Agenda interna de preparação; a confirmação oficial continua fora do sistema.</p></div></div><div id="agendaExams"></div></div>
+        <div id="agendaResourcePanel" class="card card-pad hidden"><div class="catalog-head"><div><h2>Equipe e veículos</h2><p>Disponibilidade semanal e bloqueios.</p></div><button id="newResource" type="button" class="small">+ Recurso</button></div><div id="agendaResources"></div></div>
       </section>
       <section id="catalogView" class="hidden">
         <div class="card card-pad"><div class="catalog-head"><div><h2>Pacotes e versões</h2><p>Consulte o catálogo da unidade e publique rascunhos conferidos.</p></div><button id="newPackage" type="button">+ Novo pacote</button></div><div id="catalog"></div></div>
@@ -228,12 +256,18 @@
       </form></div>
   </dialog>
   <dialog id="bookingDialog" aria-labelledby="bookingDialogTitle">
-    <div class="dialog-content"><div class="dialog-head"><div><h2 id="bookingDialogTitle">Reservar aula demo</h2><p>Reserva sintética com crédito, instrutor e veículo da unidade.</p></div><button type="button" class="ghost small" data-close="bookingDialog" aria-label="Fechar">✕</button></div>
-      <form id="bookingForm" class="stack"><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><label>Categoria<input name="category" value="B" maxlength="20" required></label>
+    <div class="dialog-content"><div class="dialog-head"><div><h2 id="bookingDialogTitle">Marcar aula</h2><p>Escolha o aluno, o horário e os recursos da unidade.</p></div><button type="button" class="ghost small" data-close="bookingDialog" aria-label="Fechar">✕</button></div>
+      <form id="bookingForm" class="stack"><label>Aluno com matrícula ativa<select name="candidate" required></select></label><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><label>Categoria<input name="category" value="B" maxlength="20" required></label>
         <div class="form-grid"><label>Instrutor<select name="instructorId" required></select></label><label>Veículo<select name="vehicleId" required></select></label></div><label>Crédito de aula<select name="walletId" required></select></label>
         <p id="bookingDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="bookingDialog">Cancelar</button><button type="submit">Reservar aula</button></div>
       </form></div>
   </dialog>
+  <dialog id="examDialog" aria-labelledby="examDialogTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="examDialogTitle">Marcar exame prático</h2><p>Agendamento interno da unidade com aluno, instrutor e veículo. Não reserva vaga no órgão de trânsito.</p></div><button type="button" class="ghost small" data-close="examDialog" aria-label="Fechar">✕</button></div>
+    <form id="examForm" class="stack"><label>Aluno com processo ativo<select name="candidate" required></select></label><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><div class="form-grid"><label>Categoria<input name="category" value="B" maxlength="20" required></label><label>Local<input name="location" maxlength="160" required placeholder="Local de apresentação"></label></div><div class="form-grid"><label>Instrutor<select name="instructorId" required></select></label><label>Veículo<select name="vehicleId" required></select></label></div><p id="examDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="examDialog">Cancelar</button><button type="submit">Marcar exame</button></div></form>
+  </div></dialog>
+  <dialog id="agendaActionDialog" aria-labelledby="agendaActionTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="agendaActionTitle">Atualizar agendamento</h2><p id="agendaActionDescription"></p></div><button type="button" class="ghost small" data-close="agendaActionDialog" aria-label="Fechar">✕</button></div>
+    <form id="agendaActionForm" class="stack"><label id="agendaReasonLabel">Motivo<input name="reason" minlength="2" maxlength="200"></label><label id="agendaResultLabel" class="hidden">Resultado<select name="result"><option value="PASSED">Aprovado</option><option value="FAILED">Reprovado</option></select></label><p id="agendaActionStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="agendaActionDialog">Voltar</button><button id="agendaActionSubmit" type="submit">Confirmar</button></div></form>
+  </div></dialog>
   <dialog id="blockDialog" aria-labelledby="blockDialogTitle">
     <div class="dialog-content"><div class="dialog-head"><div><h2 id="blockDialogTitle">Bloquear recurso</h2><p>O bloqueio impede novas reservas neste horário.</p></div><button type="button" class="ghost small" data-close="blockDialog" aria-label="Fechar">✕</button></div>
       <form id="blockForm" class="stack"><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><label>Motivo<input name="reason" required minlength="2" maxlength="200"></label>
@@ -252,7 +286,7 @@
     const date = value => new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
     const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente', OPEN: 'Aberta', DONE: 'Concluída', PARTIALLY_PAID: 'Pagamento parcial', PAID: 'Pago', RESERVED: 'Reservada', CANCELLED_BY_CFC: 'Cancelada', REQUESTED: 'Solicitado', SUBMITTED: 'Em revisão', ACCEPTED: 'Aceito', REJECTED: 'Rejeitado' };
     const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída', 'credit.granted': 'Créditos adicionados', 'credit.reserved': 'Crédito reservado', 'credit.released': 'Crédito liberado', 'credit.consumed': 'Crédito consumido', 'receivable.created': 'Recebível criado', 'payment.received': 'Pagamento registrado', 'payment.refunded': 'Estorno registrado', 'lesson.booked': 'Aula reservada', 'lesson.cancelled': 'Aula cancelada', 'lesson.completed': 'Aula concluída', 'document.requested': 'Documento solicitado', 'document.submitted': 'Documento enviado', 'document.reviewed': 'Documento revisado' };
-    let token = '', students = [], catalog = [], tasks = [], resources = [], lessons = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'home', bookingContext = null, blockResourceId = null;
+    let token = '', students = [], catalog = [], tasks = [], resources = [], lessons = [], practicalExams = [], schedulingCandidates = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'home', bookingContext = null, blockResourceId = null, agendaTab = 'lessons', agendaAction = null;
     function notice(message, kind = 'info') { const target = $('notice'); target.textContent = message; target.className = 'notice ' + kind; }
     function clearNotice() { $('notice').className = 'notice hidden'; }
     function errorText(error) { if (error?.status === 403) return 'Sem permissão nesta unidade.'; if (error?.status === 401) return 'Sessão expirada. Entre novamente.'; return error?.message || 'Falha inesperada.'; }
@@ -292,7 +326,7 @@
       activeView = view;
       $('homeView').classList.toggle('hidden',view!=='home'); $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('agendaView').classList.toggle('hidden', view !== 'agenda'); $('catalogView').classList.toggle('hidden', view !== 'catalog'); $('reportView').classList.toggle('hidden', view !== 'reports');
       $('viewTitle').textContent = view === 'home' ? 'Visão geral' : view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : view === 'agenda' ? 'Agenda' : view === 'reports' ? 'Relatórios' : 'Catálogo';
-      $('viewDescription').textContent = view === 'home' ? 'Comece pelas pendências e pelos próximos atendimentos da unidade.' : view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : view === 'agenda' ? 'Veja aulas, instrutores e veículos da unidade.' : view === 'reports' ? 'Acompanhe alunos, aulas e valores da unidade.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
+      $('viewDescription').textContent = view === 'home' ? 'Comece pelas pendências e pelos próximos atendimentos da unidade.' : view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : view === 'agenda' ? 'Marque aulas e exames práticos e acompanhe a equipe da unidade.' : view === 'reports' ? 'Acompanhe alunos, aulas e valores da unidade.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
       for (const button of document.querySelectorAll('[data-view]')) { const active = button.dataset.view === view; button.classList.toggle('active', active); if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); }
       clearNotice();
       if (view === 'home') void loadHome();
@@ -368,22 +402,61 @@
       }catch(error){target.textContent=errorText(error);}finally{button.disabled=false;}
     }
     async function loadAgenda() {
-      const requestedUnit = unit(); $('agendaLessons').textContent = 'Carregando aulas…'; $('agendaResources').textContent = 'Carregando recursos…';
-      try { const [lessonPage,resourcePage] = await Promise.all([api('/lessons?unitId=' + requestedUnit),api('/resources?unitId=' + requestedUnit)]);
-        if (unit() !== requestedUnit) return; lessons = lessonPage.data; resources = resourcePage.data; renderAgenda();
-      } catch (error) { if (unit() !== requestedUnit) return; $('agendaLessons').textContent = errorText(error); $('agendaResources').textContent = errorText(error); }
+      const requestedUnit = unit(); $('agendaLessons').textContent = 'Carregando aulas…'; $('agendaExams').textContent = 'Carregando exames…'; $('agendaResources').textContent = 'Carregando recursos…';
+      const query=new URLSearchParams({unitId:requestedUnit});if($('agendaDate').value)query.set('day',$('agendaDate').value);
+      const results=await Promise.allSettled([api('/lessons?'+query),api('/practical-exams?'+query),api('/resources?unitId='+requestedUnit)]);
+      if (unit()!==requestedUnit) return;
+      const [lessonPage,examPage,resourcePage]=results;
+      lessons=lessonPage.status==='fulfilled'?lessonPage.value.data:[];
+      practicalExams=examPage.status==='fulfilled'?examPage.value.data:[];
+      resources=resourcePage.status==='fulfilled'?resourcePage.value.data:[];
+      renderAgenda();
+      if(lessonPage.status==='rejected') $('agendaLessons').textContent=errorText(lessonPage.reason);
+      if(examPage.status==='rejected') $('agendaExams').textContent=errorText(examPage.reason);
+      if(resourcePage.status==='rejected') $('agendaResources').textContent=errorText(resourcePage.reason);
+    }
+    function showAgendaTab(tab) {
+      agendaTab=tab;
+      for(const [name,buttonId,panelId] of [['lessons','showLessons','agendaLessonPanel'],['exams','showExams','agendaExamPanel'],['resources','showResources','agendaResourcePanel']]) {
+        const active=name===tab;$(buttonId).classList.toggle('active',active);$(buttonId).setAttribute('aria-selected',String(active));$(panelId).classList.toggle('hidden',!active);
+      }
+      $('agendaDate').disabled=tab==='resources';$('clearAgendaDate').disabled=tab==='resources';
+    }
+    function agendaDateMatches(value) { const day=$('agendaDate').value; return !day || new Date(value).toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'})===day; }
+    function agendaEmpty(target,title,description,action,label) { const empty=node('div',undefined,'agenda-empty');empty.append(node('strong',title),node('p',description));if(action){const button=node('button',label,'small');button.onclick=action;empty.append(button);}target.append(empty); }
+    function openAgendaAction(kind,id) {
+      agendaAction={kind,id,unitId:unit()};const result=kind==='examResult';
+      $('agendaActionTitle').textContent=result?'Registrar resultado':kind==='examCancel'?'Cancelar exame prático':'Cancelar aula';
+      $('agendaActionDescription').textContent=result?'Registre o resultado interno após a realização do exame.':'Informe o motivo para manter a trilha da unidade.';
+      $('agendaReasonLabel').classList.toggle('hidden',result);$('agendaResultLabel').classList.toggle('hidden',!result);
+      $('agendaActionForm').elements.namedItem('reason').required=!result;
+      $('agendaActionForm').reset();$('agendaActionStatus').classList.add('hidden');
+      $('agendaActionSubmit').textContent=result?'Registrar resultado':'Cancelar agendamento';
+      $('agendaActionDialog').showModal();
     }
     function renderAgenda() {
-      const lessonTarget = $('agendaLessons'), resourceTarget = $('agendaResources'); lessonTarget.replaceChildren(); resourceTarget.replaceChildren();
-      if (!lessons.length) lessonTarget.append(node('p', 'Nenhuma aula recente nesta unidade.', 'minor-empty'));
-      for (const lesson of lessons) {
-        const row=node('div',undefined,'task-row'),info=node('div'),actions=node('div',undefined,'row-actions');
-        info.append(node('strong',lesson.studentName+' · '+date(lesson.startsAt)),node('span',lesson.category+' · '+(lesson.instructorName || 'Sem instrutor')+' · '+(lesson.vehicleName || 'Sem veículo'),'subtle'));
+      const lessonTarget=$('agendaLessons'),examTarget=$('agendaExams'),resourceTarget=$('agendaResources');lessonTarget.replaceChildren();examTarget.replaceChildren();resourceTarget.replaceChildren();
+      const visibleLessons=lessons.filter(item=>agendaDateMatches(item.startsAt)),visibleExams=practicalExams.filter(item=>agendaDateMatches(item.startsAt));
+      $('lessonCount').textContent=lessons.length;$('examCount').textContent=practicalExams.length;
+      if(!visibleLessons.length) agendaEmpty(lessonTarget,'Nenhuma aula neste período','Escolha outro dia ou marque a primeira aula da unidade.',()=>openBooking(),'Marcar aula');
+      for (const lesson of visibleLessons) {
+        const row=node('div',undefined,'agenda-item'),info=node('div'),actions=node('div',undefined,'row-actions');
+        const when=node('div',new Date(lesson.startsAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}),'agenda-when');when.append(node('span',new Date(lesson.startsAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})));
+        info.append(node('strong',lesson.studentName),node('span','Aula '+lesson.category+' · '+(lesson.instructorName || 'Sem instrutor')+' · '+(lesson.vehicleName || 'Sem veículo'),'subtle'));
         actions.append(node('span',statusNames[lesson.status] || lesson.status,'pill '+lesson.status.toLowerCase()));
         const open=node('button','Abrir aluno','small secondary'); open.onclick=async()=>{setView('students');await selectStudent(lesson.studentId);await showProcess(lesson.processId);}; actions.append(open);
         if (lesson.status==='RESERVED') { const complete=node('button','Concluir demo','small'); complete.onclick=async()=>{try{await api('/lessons/'+lesson.id+'/complete',{method:'POST',body:{unitId:unit(),demoAttendanceConfirmed:true}});notice('Aula sintética concluída e crédito consumido.','success');await loadAgenda();}catch(error){notice(errorText(error),'error');}};actions.append(complete);
-          const cancel=node('button','Cancelar demo','small secondary'); cancel.onclick=async()=>{const reason='Cancelamento sintético pela unidade'; try {await api('/lessons/'+lesson.id+'/cancel',{method:'POST',body:{unitId:unit(),reason}});notice('Reserva cancelada e crédito liberado.','success');await loadAgenda();} catch(error){notice(errorText(error),'error');}}; actions.append(cancel); }
-        row.append(info,actions);lessonTarget.append(row);
+          const cancel=node('button','Cancelar aula','small secondary'); cancel.onclick=()=>openAgendaAction('lessonCancel',lesson.id); actions.append(cancel); }
+        row.append(when,info,actions);lessonTarget.append(row);
+      }
+      if(!visibleExams.length) agendaEmpty(examTarget,'Nenhum exame neste período','Marque um exame prático interno para acompanhar a preparação do aluno.',()=>openExam(),'Marcar exame prático');
+      for(const exam of visibleExams){const row=node('div',undefined,'agenda-item'),info=node('div'),actions=node('div',undefined,'row-actions');
+        const when=node('div',new Date(exam.startsAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}),'agenda-when');when.append(node('span',new Date(exam.startsAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})));
+        info.append(node('strong',exam.studentName),node('span','Exame '+exam.category+' · '+exam.location+' · '+exam.instructorName+' · '+exam.vehicleName,'subtle'));
+        actions.append(node('span',exam.status==='COMPLETED'?(exam.result==='PASSED'?'Aprovado':'Reprovado'):(exam.status==='CANCELLED'?'Cancelado':'Agendado'),'pill '+(exam.status==='SCHEDULED'?'active':'')));
+        if(exam.status==='SCHEDULED') {const cancel=node('button','Cancelar','small secondary');cancel.onclick=()=>openAgendaAction('examCancel',exam.id);actions.append(cancel);
+          if(Date.parse(exam.endsAt)<=Date.now()){const result=node('button','Registrar resultado','small');result.onclick=()=>openAgendaAction('examResult',exam.id);actions.append(result);}
+        }row.append(when,info,actions);examTarget.append(row);
       }
       if (!resources.length) resourceTarget.append(node('p','Cadastre um instrutor e um veículo para reservar aulas.','minor-empty'));
       for (const resource of resources) {
@@ -625,22 +698,43 @@
         }
       } catch (error) { target.textContent = errorText(error); }
     }
+    function fillOptions(select,items,label,value='id') { select.replaceChildren();for(const item of items){const option=node('option',label(item));option.value=item[value];select.append(option);} }
+    async function loadSchedulingInputs() {
+      const requestedUnit=unit(),[candidatePage,resourcePage]=await Promise.all([
+        api('/scheduling/candidates?unitId='+requestedUnit),api('/resources?unitId='+requestedUnit)]);
+      if(unit()!==requestedUnit) return null;
+      schedulingCandidates=candidatePage.data;resources=resourcePage.data;
+      const instructors=resources.filter(item=>item.kind==='INSTRUCTOR'),vehicles=resources.filter(item=>item.kind==='VEHICLE');
+      if(!schedulingCandidates.length) throw new Error('Ative uma matrícula e um processo antes de marcar horários.');
+      if(!instructors.length || !vehicles.length) throw new Error('Cadastre instrutor e veículo em Equipe e veículos antes de marcar horários.');
+      return {instructors,vehicles};
+    }
+    function refreshBookingWallets() {
+      const form=$('bookingForm'),candidate=schedulingCandidates.find(item=>item.processId===form.elements.namedItem('candidate').value);
+      const wallets=(candidate?.wallets||[]).filter(item=>Number(item.available)>0);
+      fillOptions(form.elements.namedItem('walletId'),wallets,item=>item.itemType+' · '+item.available+' disponível(is)');
+      const status=$('bookingDialogStatus');status.classList.toggle('hidden',wallets.length>0);
+      if(!wallets.length)status.textContent='Este aluno não tem crédito de aula disponível. Escolha outra matrícula.';
+      form.querySelector('button[type="submit"]').disabled=!wallets.length;
+    }
     async function openBooking(studentId,enrollmentId,processId) {
-      const requestedUnit=unit(); bookingContext={studentId,enrollmentId,processId,unitId:requestedUnit};
-      try {
-        const [creditPage,resourcePage]=await Promise.all([
-          api('/enrollments/'+enrollmentId+'/credits?unitId='+requestedUnit),api('/resources?unitId='+requestedUnit)]);
-        if (unit()!==requestedUnit) return;
-        const wallets=creditPage.data.filter(wallet=>wallet.itemType.startsWith('LESSON') && wallet.available>0);
-        const instructors=resourcePage.data.filter(resource=>resource.kind==='INSTRUCTOR'),vehicles=resourcePage.data.filter(resource=>resource.kind==='VEHICLE');
-        if (!wallets.length || !instructors.length || !vehicles.length) {notice('A matrícula precisa de crédito de aula, instrutor e veículo disponíveis.','error');return;}
-        const form=$('bookingForm');
-        for (const [name,items,label] of [['walletId',wallets,item=>item.itemType+' · '+item.available+' disponível(is)'],['instructorId',instructors,item=>item.name],['vehicleId',vehicles,item=>item.name]]) {
-          const select=form.elements.namedItem(name); select.replaceChildren();
-          for (const item of items) {const option=node('option',label(item));option.value=item.id;select.append(option);}
-        }
-        $('bookingDialogStatus').classList.add('hidden');$('bookingDialog').showModal();
-      } catch(error){notice(errorText(error),'error');}
+      try { const inputs=await loadSchedulingInputs();if(!inputs)return;
+        const eligible=schedulingCandidates.filter(item=>item.wallets.some(wallet=>Number(wallet.available)>0));
+        if(!eligible.length) throw new Error('Nenhuma matrícula ativa possui crédito de aula disponível.');
+        const form=$('bookingForm');fillOptions(form.elements.namedItem('candidate'),eligible,item=>item.studentName+' · matrícula '+item.enrollmentId.slice(0,8),'processId');
+        if(processId && eligible.some(item=>item.processId===processId))form.elements.namedItem('candidate').value=processId;
+        fillOptions(form.elements.namedItem('instructorId'),inputs.instructors,item=>item.name);
+        fillOptions(form.elements.namedItem('vehicleId'),inputs.vehicles,item=>item.name);
+        bookingContext={unitId:unit()};refreshBookingWallets();$('bookingDialog').showModal();
+      }catch(error){notice(errorText(error),'error');}
+    }
+    async function openExam() {
+      try {const inputs=await loadSchedulingInputs();if(!inputs)return;
+        const form=$('examForm');fillOptions(form.elements.namedItem('candidate'),schedulingCandidates,item=>item.studentName+' · matrícula '+item.enrollmentId.slice(0,8),'processId');
+        fillOptions(form.elements.namedItem('instructorId'),inputs.instructors,item=>item.name);
+        fillOptions(form.elements.namedItem('vehicleId'),inputs.vehicles,item=>item.name);
+        $('examDialogStatus').classList.add('hidden');$('examDialog').showModal();showAgendaTab('exams');
+      }catch(error){notice(errorText(error),'error');}
     }
     async function showProcess(id) {
       $('processCard').classList.remove('hidden'); $('process').textContent = 'Carregando processo…';
@@ -660,12 +754,17 @@
     $('logout').onclick = () => { token = ''; $('workspace').classList.add('hidden'); $('login').classList.remove('hidden'); $('logout').classList.add('hidden'); };
     for (const button of document.querySelectorAll('[data-view]')) button.onclick = () => setView(button.dataset.view);
     for (const button of document.querySelectorAll('[data-open-view]')) button.onclick = () => setView(button.dataset.openView);
+    $('homeBook').onclick=()=>{setView('agenda');void openBooking();};$('homeExam').onclick=()=>{setView('agenda');void openExam();};
     $('taskFilter').onchange = () => { void loadTasks(); }; $('taskOwner').onchange = () => { void loadTasks(); };
     $('loadConsolidated').onclick = () => { void loadConsolidated(); };
     for (const button of document.querySelectorAll('[data-close]')) button.onclick = () => $(button.dataset.close).close();
     $('newStudent').onclick = () => { $('studentDialogStatus').classList.add('hidden'); $('studentDialog').showModal(); };
     $('newPackage').onclick = () => { $('catalogDialogStatus').classList.add('hidden'); $('catalogDialog').showModal(); };
     $('newResource').onclick = () => { $('resourceDialogStatus').classList.add('hidden'); $('resourceDialog').showModal(); };
+    $('newBooking').onclick=()=>{void openBooking();};$('newExam').onclick=()=>{void openExam();};
+    $('showLessons').onclick=()=>showAgendaTab('lessons');$('showExams').onclick=()=>showAgendaTab('exams');$('showResources').onclick=()=>showAgendaTab('resources');
+    $('agendaDate').onchange=()=>{void loadAgenda();};$('clearAgendaDate').onclick=()=>{$('agendaDate').value='';void loadAgenda();};
+    $('bookingForm').elements.namedItem('candidate').onchange=refreshBookingWallets;
     $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
     $('unit').onchange = async () => { localStorage.setItem('gp-last-unit',unit()); selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); };
     $('searchForm').onsubmit = async event => { event.preventDefault(); searchQuery = String(new FormData(event.currentTarget).get('query') || '').trim(); await loadStudents(); };
@@ -680,11 +779,24 @@
     } catch(error){const target=$('resourceDialogStatus');target.textContent=errorText(error);target.classList.remove('hidden');} };
     $('bookingForm').onsubmit = async event => { event.preventDefault(); const form=event.currentTarget,data=new FormData(form),context=bookingContext;
       if (!context || context.unitId!==unit()) return;
-      try { await api('/lessons',{method:'POST',body:{unitId:context.unitId,studentId:context.studentId,processId:context.processId,
+      const candidate=schedulingCandidates.find(item=>item.processId===data.get('candidate'));if(!candidate)return;
+      try { await api('/lessons',{method:'POST',body:{unitId:context.unitId,studentId:candidate.studentId,processId:candidate.processId,
         walletId:data.get('walletId'),category:data.get('category'),instructorId:data.get('instructorId'),vehicleId:data.get('vehicleId'),
         startsAt:new Date(String(data.get('startsAt'))).toISOString(),endsAt:new Date(String(data.get('endsAt'))).toISOString()}});
-        $('bookingDialog').close();notice('Aula de demonstração reservada.','success');
+        $('bookingDialog').close();notice('Aula marcada.','success');$('agendaDate').value=String(data.get('startsAt')).slice(0,10);showAgendaTab('lessons');await loadAgenda();
       } catch(error){const target=$('bookingDialogStatus');target.textContent=errorText(error);target.classList.remove('hidden');} };
+    $('examForm').onsubmit=async event=>{event.preventDefault();const data=new FormData(event.currentTarget),candidate=schedulingCandidates.find(item=>item.processId===data.get('candidate'));if(!candidate)return;
+      try{await api('/practical-exams',{method:'POST',body:{unitId:unit(),studentId:candidate.studentId,processId:candidate.processId,
+        startsAt:new Date(String(data.get('startsAt'))).toISOString(),endsAt:new Date(String(data.get('endsAt'))).toISOString(),
+        category:data.get('category'),location:data.get('location'),instructorId:data.get('instructorId'),vehicleId:data.get('vehicleId')}});
+        $('examDialog').close();notice('Exame prático incluído na agenda interna.','success');$('agendaDate').value=String(data.get('startsAt')).slice(0,10);showAgendaTab('exams');await loadAgenda();
+      }catch(error){const target=$('examDialogStatus');target.textContent=errorText(error);target.classList.remove('hidden');}};
+    $('agendaActionForm').onsubmit=async event=>{event.preventDefault();const action=agendaAction;if(!action||action.unitId!==unit())return;
+      const data=new FormData(event.currentTarget),exam=action.kind!=='lessonCancel';
+      const path=exam?'/practical-exams/'+action.id+'/'+(action.kind==='examResult'?'result':'cancel'):'/lessons/'+action.id+'/cancel';
+      const body=action.kind==='examResult'?{unitId:unit(),result:data.get('result')}:{unitId:unit(),reason:data.get('reason')};
+      try{await api(path,{method:'POST',body});$('agendaActionDialog').close();notice(action.kind==='examResult'?'Resultado registrado.':exam?'Exame cancelado e recursos liberados.':'Aula cancelada e crédito liberado.','success');await loadAgenda();}
+      catch(error){const target=$('agendaActionStatus');target.textContent=errorText(error);target.classList.remove('hidden');}};
     $('blockForm').onsubmit = async event => { event.preventDefault(); const form=event.currentTarget,data=new FormData(form),resourceId=blockResourceId;
       if (!resourceId) return;
       try { await api('/resources/'+resourceId+'/blocks',{method:'POST',body:{unitId:unit(),startsAt:new Date(String(data.get('startsAt'))).toISOString(),endsAt:new Date(String(data.get('endsAt'))).toISOString(),reason:data.get('reason')}});

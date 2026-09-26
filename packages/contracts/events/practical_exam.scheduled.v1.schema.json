@@ -1,0 +1,13 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://gp-cfc.local/schemas/events/practical_exam.scheduled.v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["examId","studentId","processId","startsAt","endsAt","category","location","instructorId","vehicleId"],
+  "properties":{
+    "examId":{"type":"string","format":"uuid"},"studentId":{"type":"string","format":"uuid"},
+    "processId":{"type":"string","format":"uuid"},"startsAt":{"type":"string","format":"date-time"},
+    "endsAt":{"type":"string","format":"date-time"},"category":{"type":"string"},
+    "location":{"type":"string"},"instructorId":{"type":"string","format":"uuid"},
+    "vehicleId":{"type":"string","format":"uuid"}
+  }
+}
