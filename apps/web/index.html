@@ -90,6 +90,13 @@
     .commerce-detail p { margin: 5px 0; color: #516c7a; font-size: .82rem; }
     .commerce-detail .inline-form { margin: 13px 0 0; background: #fff; }
     .commerce-detail .inline-form label { flex-basis: 130px; }
+    .document-panel { margin-top: 22px; background: #f7fafb; }
+    .document-panel > summary { cursor: pointer; color: #234b5c; font-weight: 750; padding: 2px 0 11px; }
+    .document-panel[open] > summary { border-bottom: 1px solid #dfe9ec; margin-bottom: 12px; }
+    .document-upload { display: inline-flex; align-items: center; border-radius: 9px; padding: 8px 11px; background: #e9f1f2; color: #18485a; font-size: .82rem; font-weight: 700; white-space: nowrap; }
+    .document-upload:hover { background: #dcebed; }
+    .document-panel .section-head { margin: 18px 0 6px; }
+    .document-panel .item-row { align-items: start; }
     .row-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: end; }
     .minor-empty { color: #78909a; border-top: 1px solid #e9eff1; padding: 20px 0; font-size: .87rem; }
     .inline-form { display: flex; align-items: end; gap: 9px; flex-wrap: wrap; background: #f5f8f9; border: 1px solid #e4ecee; border-radius: 11px; padding: 13px; margin: 14px 0 5px; }
@@ -229,8 +236,8 @@
     const unit = () => $('unit').value;
     const money = cents => (Number(cents) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const date = value => new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-    const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente', OPEN: 'Aberta', DONE: 'Concluída', PARTIALLY_PAID: 'Pagamento parcial', PAID: 'Pago', RESERVED: 'Reservada', CANCELLED_BY_CFC: 'Cancelada' };
-    const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída', 'credit.granted': 'Créditos adicionados', 'credit.reserved': 'Crédito reservado', 'credit.released': 'Crédito liberado', 'credit.consumed': 'Crédito consumido', 'receivable.created': 'Recebível criado', 'payment.received': 'Pagamento registrado', 'payment.refunded': 'Estorno registrado', 'lesson.booked': 'Aula reservada', 'lesson.cancelled': 'Aula cancelada', 'lesson.completed': 'Aula concluída' };
+    const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente', OPEN: 'Aberta', DONE: 'Concluída', PARTIALLY_PAID: 'Pagamento parcial', PAID: 'Pago', RESERVED: 'Reservada', CANCELLED_BY_CFC: 'Cancelada', REQUESTED: 'Solicitado', SUBMITTED: 'Em revisão', ACCEPTED: 'Aceito', REJECTED: 'Rejeitado' };
+    const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída', 'credit.granted': 'Créditos adicionados', 'credit.reserved': 'Crédito reservado', 'credit.released': 'Crédito liberado', 'credit.consumed': 'Crédito consumido', 'receivable.created': 'Recebível criado', 'payment.received': 'Pagamento registrado', 'payment.refunded': 'Estorno registrado', 'lesson.booked': 'Aula reservada', 'lesson.cancelled': 'Aula cancelada', 'lesson.completed': 'Aula concluída', 'document.requested': 'Documento solicitado', 'document.submitted': 'Documento enviado', 'document.reviewed': 'Documento revisado' };
     let token = '', students = [], catalog = [], tasks = [], resources = [], lessons = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'students', bookingContext = null, blockResourceId = null;
     function notice(message, kind = 'info') { const target = $('notice'); target.textContent = message; target.className = 'notice ' + kind; }
     function clearNotice() { $('notice').className = 'notice hidden'; }
@@ -421,6 +428,10 @@
       label.append(select); const create = node('button', 'Criar rascunho', 'small'); create.disabled = !published.length; form.append(label, create);
       form.onsubmit = async event => { event.preventDefault(); const pkg = catalog.find(x => x.versionId === select.value); if (!pkg) return; try { await api('/enrollments', { method: 'POST', body: { unitId: unit(), studentId: student.id, packageVersionId: pkg.versionId, agreedPriceCents: Number(pkg.priceCents) } }); notice('Matrícula criada em rascunho.', 'success'); await selectStudent(student.id); } catch (error) { notice(errorText(error), 'error'); } };
       target.append(form); if (!published.length) target.append(node('p', 'Publique um pacote no catálogo para criar matrículas.', 'subtle'));
+      const documentsSection=node('details',undefined,'commerce-detail document-panel');
+      documentsSection.append(node('summary','Documentos do aluno e contratos'));
+      const documentsContent=node('div'); documentsSection.append(documentsContent);target.append(documentsSection);
+      documentsSection.ontoggle=()=>{if(documentsSection.open) void showDocuments(student,documentsContent);};
       const timelineHead = node('div', undefined, 'section-head'); timelineHead.append(node('h3', 'Linha do tempo')); target.append(timelineHead);
       const timelineList = node('div'); target.append(timelineList);
       function appendTimeline(page) {
@@ -430,6 +441,58 @@
         if (page.nextCursor) { const more = node('button', 'Ver eventos anteriores', 'secondary small'); more.dataset.timelineMore = ''; more.onclick = async () => { more.disabled = true; try { appendTimeline(await api('/students/' + student.id + '/timeline?cursor=' + encodeURIComponent(page.nextCursor))); } catch (error) { more.disabled = false; notice(errorText(error), 'error'); } }; target.append(more); }
       }
       appendTimeline(timeline);
+    }
+    async function showDocuments(student,target) {
+      const requestedUnit=unit();target.replaceChildren(node('p','Carregando documentos…','subtle'));
+      try {
+        const owners=[{type:'STUDENT',id:student.id,label:'Aluno'},...student.enrollments.map(e=>({type:'ENROLLMENT',id:e.id,label:'Matrícula '+e.id.slice(0,8)}))];
+        const pages=await Promise.all(owners.map(owner=>api('/documents?unitId='+requestedUnit+'&ownerType='+owner.type+'&ownerId='+owner.id)));
+        if (unit()!==requestedUnit || selectedStudent!==student.id || !target.isConnected) return;
+        target.replaceChildren();
+        for(let i=0;i<owners.length;i++) {
+          const owner=owners[i],docs=pages[i].data;
+          const group=node('div',undefined,'section-head');group.append(node('h3',owner.label));target.append(group);
+          for(const doc of docs) {
+            const row=node('div',undefined,'item-row'),info=node('div'),actions=node('div',undefined,'row-actions');
+            info.append(node('strong',({IDENTITY:'Identidade',RESIDENCE:'Comprovante de residência',MEDICAL:'Exame médico',CONTRACT:'Contrato',OTHER:'Outro'})[doc.kind]||doc.kind),
+              node('p',(statusNames[doc.status]||doc.status)+(doc.currentVersion?' · versão '+doc.currentVersion:'')+(doc.reviewReason?' · '+doc.reviewReason:''),'subtle'));
+            const upload=node('label','Enviar arquivo','document-upload');upload.style.cursor='pointer';
+            const file=node('input');file.type='file';file.accept='.pdf,.png,.jpg,.jpeg';file.className='hidden';upload.append(file);
+            file.onchange=async()=>{const selected=file.files?.[0];if(!selected)return;
+              if(selected.size>5_000_000){notice('O arquivo deve ter até 5 MB.','error');return;}
+              const mime=selected.type;if(!['application/pdf','image/png','image/jpeg'].includes(mime)){notice('Use PDF, PNG ou JPEG.','error');return;}
+              upload.style.pointerEvents='none';
+              try{const bytes=new Uint8Array(await selected.arrayBuffer());let binary='';for(let j=0;j<bytes.length;j+=8192)binary+=String.fromCharCode(...bytes.subarray(j,j+8192));
+                await api('/documents/'+doc.id+'/versions',{method:'POST',body:{unitId:requestedUnit,mimeType:mime,contentBase64:btoa(binary)}});
+                notice('Arquivo enviado para revisão.','success');await showDocuments(student,target);
+              }catch(error){notice(errorText(error),'error');upload.style.pointerEvents='auto';}
+            };actions.append(upload);
+            if(doc.currentVersion){const download=node('button','Baixar','small secondary');download.onclick=async()=>{
+              try{const response=await fetch('/api/v1/documents/'+doc.id+'/download?unitId='+requestedUnit,{headers:{authorization:'Bearer '+token,'x-organization-id':organizationId}});
+                if(!response.ok){const problem=await response.json();throw new Error(problem.message||'Falha no download');}
+                const objectUrl=URL.createObjectURL(await response.blob()),link=node('a');link.href=objectUrl;link.download='documento-'+doc.id.slice(0,8);link.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),30_000);
+              }catch(error){notice(errorText(error),'error');}
+            };actions.append(download);}
+            if(doc.status==='SUBMITTED')for(const [decision,label] of [['ACCEPTED','Aceitar'],['REJECTED','Rejeitar']]){
+              const button=node('button',label,'small secondary');button.onclick=async()=>{
+                const reason=decision==='REJECTED'?prompt('Motivo da rejeição (mínimo 2 caracteres):'):null;
+                if(decision==='REJECTED' && (!reason||reason.trim().length<2))return;
+                try{await api('/documents/'+doc.id+'/review',{method:'POST',body:{unitId:requestedUnit,decision,...(reason?{reason:reason.trim()}:{})}});
+                  notice('Documento revisado.','success');await showDocuments(student,target);
+                }catch(error){notice(errorText(error),'error');}
+              };actions.append(button);
+            }
+            row.append(info,actions);target.append(row);
+          }
+          const kinds=owner.type==='STUDENT'?[['IDENTITY','Identidade'],['RESIDENCE','Residência'],['MEDICAL','Exame médico']]:[['CONTRACT','Contrato']];
+          const available=kinds.filter(([kind])=>!docs.some(doc=>doc.kind===kind));
+          for(const [kind,label] of available){const request=node('button','+ Solicitar '+label.toLowerCase(),'small secondary');
+            request.onclick=async()=>{try{await api('/documents',{method:'POST',body:{unitId:requestedUnit,ownerType:owner.type,ownerId:owner.id,kind}});
+              notice('Documento solicitado.','success');await showDocuments(student,target);
+            }catch(error){notice(errorText(error),'error');}};target.append(request);}
+        }
+        target.append(node('p','Aceitar um arquivo de contrato não confirma assinatura. A integração de assinatura ainda será configurada.','subtle'));
+      }catch(error){target.replaceChildren(node('p',errorText(error),'minor-empty'));}
     }
     async function showCommerce(enrollmentId, target) {
       target.textContent = 'Carregando créditos e financeiro…';

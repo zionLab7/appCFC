@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GP CFC API
-  version: 0.7.0
+  version: 0.8.0
   description: Rotas marcadas implemented funcionam na API local; demais rotas são alvo de produto.
 servers:
   - url: http://localhost:3000
@@ -115,6 +115,43 @@ paths:
       description: Totais da unidade calculados de alunos, processos, aulas, recebíveis, alocações e estornos.
       parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
       responses: { '200': { description: Relatório operacional da unidade }, '403': { $ref: '#/components/responses/Problem' } }
+  /api/v1/documents:
+    get:
+      operationId: listDocuments
+      x-implementation-status: implemented
+      description: Lista até 100 documentos e somente metadados do dono na unidade autorizada.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' }, { name: ownerType, in: query, required: true, schema: { type: string, enum: [STUDENT, ENROLLMENT] } }, { name: ownerId, in: query, required: true, schema: { type: string, format: uuid } } ]
+      responses: { '200': { description: Documentos da unidade }, '403': { $ref: '#/components/responses/Problem' } }
+    post:
+      operationId: requestDocument
+      x-implementation-status: implemented
+      description: Solicita documento. CONTRACT cria um contrato DRAFT vinculado à matrícula, sem afirmar assinatura.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId, ownerType, ownerId, kind], properties: { unitId: { type: string, format: uuid }, ownerType: { type: string, enum: [STUDENT, ENROLLMENT] }, ownerId: { type: string, format: uuid }, kind: { type: string, enum: [IDENTITY, RESIDENCE, MEDICAL, CONTRACT, OTHER] } } } } } }
+      responses: { '201': { description: Documento solicitado }, '403': { $ref: '#/components/responses/Problem' }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/documents/{documentId}/versions:
+    post:
+      operationId: uploadDocumentVersion
+      x-implementation-status: implemented
+      description: Envia até 5 MB em base64. PDF, PNG e JPEG; SHA-256 calculado pelo servidor. O arquivo fica em storage privado.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: documentId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId, mimeType, contentBase64], properties: { unitId: { type: string, format: uuid }, mimeType: { type: string, enum: [application/pdf, image/png, image/jpeg] }, contentBase64: { type: string, contentEncoding: base64 } } } } } }
+      responses: { '201': { description: Versão armazenada e aguardando revisão }, '413': { $ref: '#/components/responses/Problem' } }
+  /api/v1/documents/{documentId}/review:
+    post:
+      operationId: reviewDocument
+      x-implementation-status: implemented
+      description: Somente document.review; motivo obrigatório na rejeição. Aceitar contrato não significa assinatura.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: documentId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId, decision], properties: { unitId: { type: string, format: uuid }, decision: { type: string, enum: [ACCEPTED, REJECTED] }, reason: { type: string, maxLength: 500 } } } } } }
+      responses: { '200': { description: Documento revisado }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/documents/{documentId}/download:
+    get:
+      operationId: downloadDocument
+      x-implementation-status: implemented
+      description: Download autorizado da versão atual, com verificação de tamanho e SHA-256. Cache desabilitado.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Arquivo privado, content: { application/octet-stream: { schema: { type: string, format: binary } } } }, '403': { $ref: '#/components/responses/Problem' }, '502': { $ref: '#/components/responses/Problem' } }
   /api/v1/catalog/packages:
     get:
       operationId: listCatalogPackages

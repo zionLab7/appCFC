@@ -6,6 +6,8 @@
 
 **Ainda em 26/09/2026:** a v0.6 passou no CI remoto. A v0.7 acrescenta relatório operacional por unidade e dispatcher assinado da outbox com retry e lease. Restam critérios de Sprint 0 como staging, backup/restore, p95, secret management e aceite de operação real; manter as stories abertas até esses gates passarem.
 
+**Continuação v0.8:** restore local sintético em banco `_test` passou, e documentos ganharam armazenamento privado, revisão e download auditado. O contrato é apenas rascunho, pois o provedor de assinatura ainda será escolhido. Staging, restore de staging, p95, regras da equipe GP e controles de produção continuam pendentes.
+
 ## Sprint 0 — fundação (5 dias úteis, estimativa inicial)
 
 Objetivo: transformar o scaffold em base segura para equipe e deploy de teste. **Dia 1:** criar repositório remoto/branch protection, instalar dependências e registrar lockfile; conferir Compose/migrations em ambiente do desenvolvedor. **Dia 2:** trocar bootstrap HTTP por NestJS modular, validar variáveis e erro padrão com correlation ID. **Dia 3:** integrar OIDC de desenvolvimento com sessão, organização/unidade, RBAC real, retirar `X-Dev-User` e teste de negação cruzada. **Dia 4:** CI com PostgreSQL real, lint/typecheck/contract/migration tests, análise de secret e outbox simples. **Dia 5:** subir staging isolado, backup+restore de teste, runbook e revisão de performance baseline. Saída: ST-01/ST-02/ST-08 aceitas; nunca habilitar dados reais com a autenticação do protótipo.

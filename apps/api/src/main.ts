@@ -11,6 +11,7 @@ import { listTasks } from './tasks.js';
 import { getCredits, getFinance, receivePayment, refundPayment } from './finance.js';
 import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, listLessons, listResources, listStudentLessons } from './scheduling.js';
 import { getOperationsReport } from './reports.js';
+import { downloadDocument, listDocuments, requestDocument, reviewDocument, uploadDocument } from './documents.js';
 
 const port = Number(process.env.PORT ?? 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be a valid TCP port');
@@ -22,13 +23,13 @@ function reply(res: ServerResponse, status: number, value: unknown, correlationI
   res.writeHead(status, {'content-type':'application/json; charset=utf-8','x-correlation-id':correlationId,'cache-control':'no-store'});
   res.end(JSON.stringify(value));
 }
-async function jsonBody(req: IncomingMessage): Promise<unknown> {
+async function jsonBody(req: IncomingMessage, maxBytes=16_384): Promise<unknown> {
   if (singleHeader(req,'content-type')?.split(';')[0].trim() !== 'application/json')
     throw new HttpError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Use application/json');
   let bytes = 0, body = '';
   for await (const chunk of req) {
     bytes += (chunk as Buffer).length;
-    if (bytes > 16_384) throw new HttpError(413, 'BODY_TOO_LARGE', 'Corpo excede 16 KB');
+    if (bytes > maxBytes) throw new HttpError(413, 'BODY_TOO_LARGE', 'Corpo excede o limite');
     body += (chunk as Buffer).toString('utf8');
   }
   try { return JSON.parse(body) as unknown; }
@@ -48,7 +49,7 @@ const server = createServer(async (req,res) => {
     if (req.method==='GET' && url.pathname==='/health/live') return reply(res,200,{status:'ok'},correlationId);
     if (req.method==='GET' && url.pathname==='/health/ready') {
       try {
-        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='017_operational_reports.sql'`);
+        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='020_document_invariants.sql'`);
         if (!migration.rowCount) throw new Error('Schema is not current');
         return reply(res,200,{status:'ready'},correlationId);
       } catch { return reply(res,503,{code:'DATABASE_UNAVAILABLE',message:'Banco ou migrations indisponíveis',correlationId},correlationId); }
@@ -70,6 +71,27 @@ const server = createServer(async (req,res) => {
       return reply(res,200,await listTasks(pool,identity,url.searchParams),correlationId);
     if (url.pathname==='/api/v1/reports/operations' && req.method==='GET')
       return reply(res,200,await getOperationsReport(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
+    if (url.pathname==='/api/v1/documents' && req.method==='GET')
+      return reply(res,200,await listDocuments(pool,identity,url.searchParams.get('unitId') ?? '',
+        url.searchParams.get('ownerType') ?? '',url.searchParams.get('ownerId') ?? ''),correlationId);
+    if (url.pathname==='/api/v1/documents' && req.method==='POST')
+      return reply(res,201,await requestDocument(pool,identity,await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const documentVersion=/^\/api\/v1\/documents\/([^/]+)\/versions$/.exec(url.pathname);
+    if (documentVersion && req.method==='POST')
+      return reply(res,201,await uploadDocument(pool,identity,documentVersion[1],await jsonBody(req,7_100_000),
+        singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const documentReview=/^\/api\/v1\/documents\/([^/]+)\/review$/.exec(url.pathname);
+    if (documentReview && req.method==='POST')
+      return reply(res,200,await reviewDocument(pool,identity,documentReview[1],await jsonBody(req),
+        singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const documentDownload=/^\/api\/v1\/documents\/([^/]+)\/download$/.exec(url.pathname);
+    if (documentDownload && req.method==='GET') {
+      const file=await downloadDocument(pool,identity,documentDownload[1],url.searchParams.get('unitId') ?? '',correlationId);
+      res.writeHead(200,{'content-type':file.mimeType,'content-length':file.bytes.length,
+        'content-disposition':'attachment; filename="documento"','cache-control':'no-store',
+        'x-content-type-options':'nosniff','x-correlation-id':correlationId});
+      return res.end(file.bytes);
+    }
     if (url.pathname==='/api/v1/resources' && req.method==='GET')
       return reply(res,200,await listResources(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
     if (url.pathname==='/api/v1/resources' && req.method==='POST')

@@ -10,6 +10,7 @@ import { listTasks } from '../../src/tasks.js';
 import { getCredits,getFinance,receivePayment,refundPayment } from '../../src/finance.js';
 import { blockResource,bookLesson,cancelLesson,completeLesson,createResource,listResources,listStudentLessons } from '../../src/scheduling.js';
 import { getOperationsReport } from '../../src/reports.js';
+import { requestDocument } from '../../src/documents.js';
 
 const url=process.env.GP_CFC_TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith('_test')) throw new Error('Use a disposable _test database');
@@ -33,6 +34,7 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES
       ($1,'resource.read'),($1,'resource.write'),($1,'lesson.read'),($1,'lesson.book'),($1,'lesson.cancel'),($1,'lesson.complete')`,[role]);
     await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'report.read')`,[role]);
+    await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'document.write')`,[role]);
     await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org,unit,user,role]);
     const wf=randomUUID(),wfVersion=randomUUID();
     await pool.query(`INSERT INTO workflow_definition(id,organization_id,code,service_type) VALUES($1,$2,'DEMO','TEST_SERVICE')`,[wf,org]);
@@ -63,6 +65,15 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     await assert.rejects(pool.query(`UPDATE package_item SET quantity=1 WHERE package_version_id=$1`,[pkg.versionId]),/immutable/);
     const draft=await createEnrollment(pool,identity,{unitId:unit,studentId:student.id,packageVersionId:pkg.versionId,agreedPriceCents:1200},key(),corr());
     assert.equal(draft.packageSnapshot.items[0].quantity,3);
+    const contractDocument=await requestDocument(pool,identity,{unitId:unit,ownerType:'ENROLLMENT',ownerId:draft.id,kind:'CONTRACT'},key(),corr());
+    const contract=await pool.query(`SELECT status,document_id,signed_at FROM contract WHERE organization_id=$1 AND enrollment_id=$2`,[org,draft.id]);
+    assert.equal(contract.rows[0].status,'DRAFT');
+    assert.equal(contract.rows[0].document_id,contractDocument.id);
+    assert.equal(contract.rows[0].signed_at,null);
+    const unrelatedDocument=await requestDocument(pool,identity,{unitId:unit,ownerType:'STUDENT',ownerId:student.id,kind:'IDENTITY'},key(),corr());
+    await assert.rejects(pool.query(`UPDATE contract SET document_id=$2 WHERE enrollment_id=$1`,[draft.id,unrelatedDocument.id]),
+      /same enrollment/);
+    await assert.rejects(requestDocument(pool,identity,{unitId:unit,ownerType:'ENROLLMENT',ownerId:draft.id,kind:'CONTRACT'},key(),corr()),{code:'CONTRACT_EXISTS'});
     await assert.rejects(createEnrollment(pool,identity,{unitId:otherUnit,studentId:student.id,packageVersionId:pkg.versionId,agreedPriceCents:1200},key(),corr()),{code:'ACCESS_DENIED'});
     const v2=await createDraftVersion(pool,identity,pkg.packageId,{unitId:unit,priceCents:2000,items:[{itemType:'LESSON',quantity:5}]},key(),corr());
     await publishVersion(pool,identity,v2.versionId,{unitId:unit},key(),corr());

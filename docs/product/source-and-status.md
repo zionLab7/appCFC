@@ -43,3 +43,7 @@ As migrations 013–016 criam permissões e guards adicionais para finanças, cr
 ## Continuação v0.7 — 26/09/2026
 
 O relatório operacional por unidade calcula alunos, processos e etapas abertas, aulas por estado e saldo financeiro a partir de recebíveis, alocações e estornos; a permissão `report.read` limita o acesso. A migration 018 e o worker opcional acrescentam lease, retry e entrega assinada da outbox para um webhook configurado, sem conexão externa predefinida. Testes PostgreSQL cobrem disputa entre workers e retry, e um teste HTTP local verifica a assinatura. A interface ganhou a quinta área, Relatórios. O CI remoto da v0.6 passou em `zionLab7/appCFC`. Ainda faltam documentos, assinatura verificável, regras homologadas, staging, restore e p95 para o MVP operacional.
+
+## Estado observado na v0.8 — 26/09/2026
+
+Migrations 019–020, API, contrato OpenAPI, eventos, RBAC, auditoria, testes e interface cobrem o fluxo básico de documentos solicitados/versionados/revisados. S3Mock real e token Keycloak foram usados num smoke sintético; teste integrado usa servidor S3 simulado e PostgreSQL `_test`. O vínculo de contrato é criado em `DRAFT`, sem assinatura. A restauração de backup local sintético passou; staging e critérios de operação real continuam abertos. A v0.7 passou no CI remoto; o resultado remoto da v0.8 deve ser registrado após a publicação.
