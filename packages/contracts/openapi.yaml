@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GP CFC API
-  version: 0.8.0
+  version: 0.9.0
   description: Rotas marcadas implemented funcionam na API local; demais rotas são alvo de produto.
 servers:
   - url: http://localhost:3000
@@ -129,6 +129,13 @@ paths:
       parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId, ownerType, ownerId, kind], properties: { unitId: { type: string, format: uuid }, ownerType: { type: string, enum: [STUDENT, ENROLLMENT] }, ownerId: { type: string, format: uuid }, kind: { type: string, enum: [IDENTITY, RESIDENCE, MEDICAL, CONTRACT, OTHER] } } } } } }
       responses: { '201': { description: Documento solicitado }, '403': { $ref: '#/components/responses/Problem' }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/access/units:
+    get:
+      operationId: listAccessibleUnits
+      x-implementation-status: implemented
+      description: Lista somente unidades ativas em que o usuário autenticado possui vínculo ativo.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' } ]
+      responses: { '200': { description: Unidades visíveis e papéis do usuário }, '401': { $ref: '#/components/responses/Problem' } }
   /api/v1/documents/{documentId}/versions:
     post:
       operationId: uploadDocumentVersion

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { createStudent, getStudent, getStudentTimeline, listStudents, searchStudents } from '../../src/students.js';
+import { listAccessibleUnits } from '../../src/access.js';
 
 const url = process.env.GP_CFC_TEST_DATABASE_URL;
 if (!url) throw new Error('Set GP_CFC_TEST_DATABASE_URL to a dedicated disposable PostgreSQL database');
@@ -20,6 +21,7 @@ test('Postgres: isolamento de unidade, paginação e cadastro idempotente concor
     await pool.query(`INSERT INTO permission(code,description) VALUES('student.read','Consulta'),('student.write','Cadastro') ON CONFLICT DO NOTHING`);
     await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'student.read'),($1,'student.write')`,[role]);
     await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org,penha,user,role]);
+    assert.deepEqual((await listAccessibleUnits(pool,identity)).data.map((x:{id:string})=>x.id),[penha]);
     const firstInput={unitId:penha,fullName:'Aluno Teste Um',phone:'(11) 00000-0000',documentKind:'CPF',documentNumber:'52998224725'};
     const key=randomUUID();
     const [first,repeated] = await Promise.all([
@@ -52,6 +54,7 @@ test('Postgres: isolamento de unidade, paginação e cadastro idempotente concor
     const timeline=await getStudentTimeline(pool,identity,first.id,new URLSearchParams());
     assert.deepEqual(timeline.data.map((x:{action:string})=>x.action),['student.created']);
     await pool.query(`UPDATE user_unit_membership SET active=false WHERE unit_id=$1 AND user_id=$2`,[penha,user]);
+    assert.deepEqual((await listAccessibleUnits(pool,identity)).data,[]);
     assert.equal((await listStudents(pool,identity,new URLSearchParams())).data.length,0);
     assert.equal((await searchStudents(pool,identity,{query:'Teste'})).data.length,0);
     await assert.rejects(getStudent(pool,identity,first.id),{code:'STUDENT_NOT_FOUND'});

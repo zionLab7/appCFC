@@ -128,6 +128,14 @@
     .weekday-grid label { display: flex; align-items: center; gap: 5px; }
     .weekday-grid input { width: auto; }
     .report-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
+    .home-hero { border-radius: 17px; padding: 28px; background: linear-gradient(120deg,#10394d,#08776e); color: #fff; margin-bottom: 18px; }
+    .home-hero h2 { font-size: 1.45rem; margin: 0 0 8px; }
+    .home-hero p { color: #d3eeed; max-width: 650px; line-height: 1.5; margin-bottom: 18px; }
+    .home-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+    .home-actions button { background: #fff; color: #16505c; }
+    .home-actions button.secondary { background: #ffffff24; color: #fff; border: 1px solid #ffffff55; }
+    .home-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+    .home-list { min-height: 105px; }
     .metric { border: 1px solid #dfebed; border-radius: 12px; padding: 17px; background: #fff; }
     .metric span { display: block; color: #647e8b; font-size: .8rem; }
     .metric strong { display: block; font-size: 1.3rem; margin-top: 7px; }
@@ -147,7 +155,7 @@
     #login h1 { font-size: 1.5rem; }
     #login p { color: #68818e; font-size: .9rem; line-height: 1.5; }
     #login button { margin-top: 8px; }
-    @media (max-width: 900px) { .student-layout, .agenda-grid { grid-template-columns: 1fr; } .page-head { align-items: start; } }
+    @media (max-width: 900px) { .student-layout, .agenda-grid, .home-columns { grid-template-columns: 1fr; } .page-head { align-items: start; } }
     @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } .report-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } }
   </style>
 </head>
@@ -166,12 +174,18 @@
     </section>
     <section id="workspace" class="hidden">
       <div class="page-head">
-        <div><span class="eyebrow">Operação</span><h1 id="viewTitle">Alunos</h1><p id="viewDescription">Encontre um aluno e acompanhe a matrícula em um só lugar.</p></div>
-        <div class="toolbar"><label>Unidade<select id="unit"><option value="00000000-0000-4000-8000-000000000011">Ponte Rasa</option><option value="00000000-0000-4000-8000-000000000012">Penha</option><option value="00000000-0000-4000-8000-000000000013">Mooca</option></select></label><button id="refresh" class="secondary">Atualizar</button></div>
+        <div><span class="eyebrow">Operação</span><h1 id="viewTitle">Visão geral</h1><p id="viewDescription">Comece pelas pendências e pelos próximos atendimentos da unidade.</p></div>
+        <div class="toolbar"><label>Unidade<select id="unit"><option value="">Carregando unidades…</option></select></label><button id="refresh" class="secondary">Atualizar</button></div>
       </div>
-      <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="students" class="active" aria-current="page">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="agenda">Agenda</button><button type="button" data-view="catalog">Catálogo</button><button type="button" data-view="reports">Relatórios</button></nav>
+      <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="home" class="active" aria-current="page">Início</button><button type="button" data-view="students">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="agenda">Agenda</button><button type="button" data-view="catalog">Catálogo</button><button type="button" data-view="reports">Relatórios</button></nav>
       <div id="notice" role="status" class="notice hidden"></div>
-      <section id="studentView" class="student-layout">
+      <section id="homeView">
+        <div class="home-hero"><h2>Prioridades da unidade</h2><p>Veja a fila da unidade e abra rapidamente alunos, tarefas ou agenda. Este ambiente usa apenas dados fictícios.</p><div class="home-actions"><button type="button" data-open-view="students">Abrir alunos</button><button type="button" data-open-view="tasks" class="secondary">Ver tarefas</button><button type="button" data-open-view="agenda" class="secondary">Ver agenda</button></div></div>
+        <div id="homeKpis" class="report-kpis" aria-live="polite"></div>
+        <div class="home-columns"><div class="card card-pad"><div class="card-head"><div><h2>Tarefas abertas</h2><p>Próximas ações da equipe.</p></div><button type="button" data-open-view="tasks" class="small secondary">Abrir fila</button></div><div id="homeTasks" class="home-list"></div></div>
+          <div class="card card-pad"><div class="card-head"><div><h2>Aulas recentes e futuras</h2><p>Acompanhe reservas da unidade.</p></div><button type="button" data-open-view="agenda" class="small secondary">Abrir agenda</button></div><div id="homeLessons" class="home-list"></div></div></div>
+      </section>
+      <section id="studentView" class="student-layout hidden">
         <aside class="card card-pad">
           <div class="card-head"><div><h2>Alunos da unidade</h2><p>Busque e abra um cadastro.</p></div><span id="studentCount" class="count">0</span></div>
           <form id="searchForm"><label>Nome, CPF ou telefone<input name="query" minlength="2" maxlength="100" autocomplete="off" placeholder="Digite para buscar"></label><div class="search-actions"><button type="submit">Buscar</button><button type="button" id="clearSearch" class="secondary">Limpar</button></div></form>
@@ -238,7 +252,7 @@
     const date = value => new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
     const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente', OPEN: 'Aberta', DONE: 'Concluída', PARTIALLY_PAID: 'Pagamento parcial', PAID: 'Pago', RESERVED: 'Reservada', CANCELLED_BY_CFC: 'Cancelada', REQUESTED: 'Solicitado', SUBMITTED: 'Em revisão', ACCEPTED: 'Aceito', REJECTED: 'Rejeitado' };
     const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída', 'credit.granted': 'Créditos adicionados', 'credit.reserved': 'Crédito reservado', 'credit.released': 'Crédito liberado', 'credit.consumed': 'Crédito consumido', 'receivable.created': 'Recebível criado', 'payment.received': 'Pagamento registrado', 'payment.refunded': 'Estorno registrado', 'lesson.booked': 'Aula reservada', 'lesson.cancelled': 'Aula cancelada', 'lesson.completed': 'Aula concluída', 'document.requested': 'Documento solicitado', 'document.submitted': 'Documento enviado', 'document.reviewed': 'Documento revisado' };
-    let token = '', students = [], catalog = [], tasks = [], resources = [], lessons = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'students', bookingContext = null, blockResourceId = null;
+    let token = '', students = [], catalog = [], tasks = [], resources = [], lessons = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'home', bookingContext = null, blockResourceId = null;
     function notice(message, kind = 'info') { const target = $('notice'); target.textContent = message; target.className = 'notice ' + kind; }
     function clearNotice() { $('notice').className = 'notice hidden'; }
     function errorText(error) { if (error?.status === 403) return 'Sem permissão nesta unidade.'; if (error?.status === 401) return 'Sessão expirada. Entre novamente.'; return error?.message || 'Falha inesperada.'; }
@@ -267,16 +281,58 @@
       const value = await response.json(); if (!response.ok) { const error = new Error(value.message || 'Falha na API'); error.status = response.status; error.code = value.code; throw error; }
       return value;
     }
+    async function loadUnits() {
+      const current=localStorage.getItem('gp-last-unit')||unit(),page=await api('/access/units');
+      const selector=$('unit');selector.replaceChildren();
+      for(const item of page.data){const option=node('option',item.name);option.value=item.id;selector.append(option);}
+      if(!page.data.length)throw new Error('Sua conta não possui unidade ativa.');
+      selector.value=page.data.some(item=>item.id===current)?current:page.data[0].id;
+    }
     function setView(view) {
       activeView = view;
-      $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('agendaView').classList.toggle('hidden', view !== 'agenda'); $('catalogView').classList.toggle('hidden', view !== 'catalog'); $('reportView').classList.toggle('hidden', view !== 'reports');
-      $('viewTitle').textContent = view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : view === 'agenda' ? 'Agenda' : view === 'reports' ? 'Relatórios' : 'Catálogo';
-      $('viewDescription').textContent = view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : view === 'agenda' ? 'Veja aulas, instrutores e veículos da unidade.' : view === 'reports' ? 'Acompanhe alunos, aulas e valores da unidade.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
+      $('homeView').classList.toggle('hidden',view!=='home'); $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('agendaView').classList.toggle('hidden', view !== 'agenda'); $('catalogView').classList.toggle('hidden', view !== 'catalog'); $('reportView').classList.toggle('hidden', view !== 'reports');
+      $('viewTitle').textContent = view === 'home' ? 'Visão geral' : view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : view === 'agenda' ? 'Agenda' : view === 'reports' ? 'Relatórios' : 'Catálogo';
+      $('viewDescription').textContent = view === 'home' ? 'Comece pelas pendências e pelos próximos atendimentos da unidade.' : view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : view === 'agenda' ? 'Veja aulas, instrutores e veículos da unidade.' : view === 'reports' ? 'Acompanhe alunos, aulas e valores da unidade.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
       for (const button of document.querySelectorAll('[data-view]')) { const active = button.dataset.view === view; button.classList.toggle('active', active); if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); }
       clearNotice();
+      if (view === 'home') void loadHome();
       if (view === 'tasks') void loadTasks();
       if (view === 'agenda') void loadAgenda();
       if (view === 'reports') void loadReport();
+    }
+    async function loadHome() {
+      const requestedUnit=unit();$('homeKpis').textContent='Carregando indicadores…';$('homeTasks').textContent='Carregando tarefas…';$('homeLessons').textContent='Carregando aulas…';
+      try {
+        const [reportResult,taskResult,lessonResult]=await Promise.allSettled([
+          api('/reports/operations?unitId='+requestedUnit),
+          api('/tasks?'+new URLSearchParams({unitId:requestedUnit,view:'open',owner:'unit',limit:'5'})),
+          api('/lessons?unitId='+requestedUnit)
+        ]);
+        if(unit()!==requestedUnit)return;
+        const report=reportResult.status==='fulfilled'?reportResult.value:null;
+        const taskPage=taskResult.status==='fulfilled'?taskResult.value:null;
+        const lessonPage=lessonResult.status==='fulfilled'?lessonResult.value:null;
+        const kpis=$('homeKpis');kpis.replaceChildren();
+        for(const [label,value] of [['Alunos',report?.students??'—'],['Tarefas na fila',taskPage?taskPage.data.length+(taskPage.hasMore?'+':''):'—'],
+          ['Aulas',report?report.lessons.reduce((n,item)=>n+item.total,0):'—'],['A receber',report?money(report.finance.outstandingCents):'—']]) {
+          const card=node('div',undefined,'metric');card.append(node('span',label),node('strong',value));kpis.append(card);
+        }
+        const taskTarget=$('homeTasks');taskTarget.replaceChildren();
+        if(!taskPage)taskTarget.append(node('p','Fila indisponível para este acesso.','minor-empty'));
+        else if(!taskPage.data.length)taskTarget.append(node('p','Nenhuma tarefa aberta nesta unidade.','minor-empty'));
+        for(const task of taskPage?.data||[]){const row=node('div',undefined,'task-row'),info=node('div');
+          info.append(node('strong',task.stepLabel||task.kind),node('span',(task.studentName||'Sem aluno')+(task.dueAt?' · '+date(task.dueAt):''),'subtle'));
+          const open=node('button','Abrir','small secondary');open.onclick=async()=>{if(task.studentId&&task.processId){setView('students');await selectStudent(task.studentId);await showProcess(task.processId);}else setView('tasks');};
+          row.append(info,open);taskTarget.append(row);
+        }
+        const lessonTarget=$('homeLessons');lessonTarget.replaceChildren();
+        if(!lessonPage)lessonTarget.append(node('p','Agenda indisponível para este acesso.','minor-empty'));
+        else if(!lessonPage.data.length)lessonTarget.append(node('p','Nenhuma aula recente nesta unidade.','minor-empty'));
+        for(const lesson of (lessonPage?.data||[]).slice(0,5)){const row=node('div',undefined,'task-row'),info=node('div');
+          info.append(node('strong',lesson.studentName),node('span',date(lesson.startsAt)+' · '+(statusNames[lesson.status]||lesson.status),'subtle'));
+          const open=node('button','Abrir','small secondary');open.onclick=async()=>{setView('students');await selectStudent(lesson.studentId);};row.append(info,open);lessonTarget.append(row);
+        }
+      }catch(error){if(unit()===requestedUnit){$('homeKpis').textContent=errorText(error);$('homeTasks').textContent='';$('homeLessons').textContent='';notice(errorText(error),'error');}}
     }
     async function loadReport() {
       const requestedUnit=unit(); $('reportKpis').textContent='Carregando relatório…'; $('reportSteps').replaceChildren(); $('reportActivity').replaceChildren();
@@ -349,8 +405,8 @@
       if (taskCursor) { const more = node('button', 'Ver mais tarefas', 'secondary list-more'); more.onclick = async () => { more.disabled = true; await loadTasks(taskCursor); if (more.isConnected) more.disabled = false; }; target.append(more); }
     }
     async function studentRequest(cursor = null) {
-      if (searchQuery) return api('/students/search', { method: 'POST', body: { unitId: unit(), query: searchQuery, limit: 30, ...(cursor ? { cursor } : {}) } });
-      const params = new URLSearchParams({ unitId: unit(), limit: '30' }); if (cursor) params.set('cursor', cursor);
+      if (searchQuery) return api('/students/search', { method: 'POST', body: { unitId: unit(), query: searchQuery, limit: 10, ...(cursor ? { cursor } : {}) } });
+      const params = new URLSearchParams({ unitId: unit(), limit: '10' }); if (cursor) params.set('cursor', cursor);
       return api('/students?' + params);
     }
     async function loadStudents() {
@@ -589,13 +645,14 @@
     $('loginButton').onclick = login;
     $('logout').onclick = () => { token = ''; $('workspace').classList.add('hidden'); $('login').classList.remove('hidden'); $('logout').classList.add('hidden'); };
     for (const button of document.querySelectorAll('[data-view]')) button.onclick = () => setView(button.dataset.view);
+    for (const button of document.querySelectorAll('[data-open-view]')) button.onclick = () => setView(button.dataset.openView);
     $('taskFilter').onchange = () => { void loadTasks(); }; $('taskOwner').onchange = () => { void loadTasks(); };
     for (const button of document.querySelectorAll('[data-close]')) button.onclick = () => $(button.dataset.close).close();
     $('newStudent').onclick = () => { $('studentDialogStatus').classList.add('hidden'); $('studentDialog').showModal(); };
     $('newPackage').onclick = () => { $('catalogDialogStatus').classList.add('hidden'); $('catalogDialog').showModal(); };
     $('newResource').onclick = () => { $('resourceDialogStatus').classList.add('hidden'); $('resourceDialog').showModal(); };
-    $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
-    $('unit').onchange = async () => { selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); };
+    $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
+    $('unit').onchange = async () => { localStorage.setItem('gp-last-unit',unit()); selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); };
     $('searchForm').onsubmit = async event => { event.preventDefault(); searchQuery = String(new FormData(event.currentTarget).get('query') || '').trim(); await loadStudents(); };
     $('clearSearch').onclick = async () => { $('searchForm').reset(); searchQuery = ''; await loadStudents(); };
     $('studentForm').onsubmit = async event => { event.preventDefault(); const form = event.currentTarget, data = new FormData(form); try { const phone = String(data.get('phone') || '').trim(); const student = await api('/students', { method: 'POST', body: { unitId: unit(), fullName: data.get('fullName'), ...(phone ? { phone } : {}) } }); form.reset(); $('studentDialog').close(); searchQuery = ''; $('searchForm').reset(); notice('Aluno cadastrado.', 'success'); await loadStudents(); await selectStudent(student.id); } catch (error) { const target = $('studentDialogStatus'); target.textContent = errorText(error); target.classList.remove('hidden'); } };
@@ -618,7 +675,7 @@
       try { await api('/resources/'+resourceId+'/blocks',{method:'POST',body:{unitId:unit(),startsAt:new Date(String(data.get('startsAt'))).toISOString(),endsAt:new Date(String(data.get('endsAt'))).toISOString(),reason:data.get('reason')}});
         $('blockDialog').close();notice('Bloqueio cadastrado.','success');await loadAgenda();
       } catch(error){const target=$('blockDialogStatus');target.textContent=errorText(error);target.classList.remove('hidden');} };
-    try { await completeLogin(); if (token) { $('login').classList.add('hidden'); $('workspace').classList.remove('hidden'); $('logout').classList.remove('hidden'); await Promise.all([loadStudents(), loadCatalog()]); } } catch (error) { $('loginStatus').textContent = errorText(error); }
+    try { await completeLogin(); if (token) { await loadUnits(); $('login').classList.add('hidden'); $('workspace').classList.remove('hidden'); $('logout').classList.remove('hidden'); await Promise.all([loadStudents(), loadCatalog(), loadHome()]); } } catch (error) { $('loginStatus').textContent = errorText(error); }
   </script>
 </body>
 </html>

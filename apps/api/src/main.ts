@@ -12,6 +12,7 @@ import { getCredits, getFinance, receivePayment, refundPayment } from './finance
 import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, listLessons, listResources, listStudentLessons } from './scheduling.js';
 import { getOperationsReport } from './reports.js';
 import { downloadDocument, listDocuments, requestDocument, reviewDocument, uploadDocument } from './documents.js';
+import { listAccessibleUnits } from './access.js';
 
 const port = Number(process.env.PORT ?? 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be a valid TCP port');
@@ -59,6 +60,8 @@ const server = createServer(async (req,res) => {
     if (!url.pathname.startsWith('/api/v1/')) throw new HttpError(404,'NOT_FOUND','Rota não encontrada');
     // Authenticate before resolving object IDs; inaccessible students are indistinguishable from missing ones.
     const identity = await authenticate(req,pool,verifier);
+    if (url.pathname==='/api/v1/access/units' && req.method==='GET')
+      return reply(res,200,await listAccessibleUnits(pool,identity),correlationId);
     if (url.pathname==='/api/v1/students' && req.method==='GET')
       return reply(res,200,await listStudents(pool,identity,url.searchParams),correlationId);
     if (url.pathname==='/api/v1/students' && req.method==='POST') {
