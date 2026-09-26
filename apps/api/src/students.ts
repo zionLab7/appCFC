@@ -195,11 +195,38 @@ export async function getStudentTimeline(pool: Pool, identity: Identity, student
           WHERE pr.id=a.entity_id AND pr.organization_id=a.organization_id AND pr.student_id=$2))
         OR (a.entity_type='task' AND EXISTS (SELECT 1 FROM task t JOIN process pr
           ON pr.id=t.process_id AND pr.organization_id=t.organization_id
-          WHERE t.id=a.entity_id AND t.organization_id=a.organization_id AND pr.student_id=$2)))
+          WHERE t.id=a.entity_id AND t.organization_id=a.organization_id AND pr.student_id=$2))
+        OR (a.entity_type='lesson' AND EXISTS (SELECT 1 FROM lesson l
+          WHERE l.id=a.entity_id AND l.organization_id=a.organization_id AND l.student_id=$2))
+        OR (a.entity_type='credit_reservation' AND EXISTS (SELECT 1 FROM credit_reservation h
+          JOIN lesson l ON l.id=h.lesson_id AND l.organization_id=h.organization_id
+          WHERE h.id=a.entity_id AND h.organization_id=a.organization_id AND l.student_id=$2))
+        OR (a.entity_type='credit_wallet' AND EXISTS (SELECT 1 FROM credit_wallet w JOIN enrollment e
+          ON e.id=w.enrollment_id AND e.organization_id=w.organization_id
+          WHERE w.id=a.entity_id AND w.organization_id=a.organization_id AND e.student_id=$2))
+        OR (a.entity_type='receivable' AND EXISTS (SELECT 1 FROM receivable r JOIN enrollment e
+          ON e.id=r.enrollment_id AND e.organization_id=r.organization_id
+          WHERE r.id=a.entity_id AND r.organization_id=a.organization_id AND e.student_id=$2))
+        OR (a.entity_type='payment' AND EXISTS (SELECT 1 FROM payment_allocation pa
+          JOIN installment i ON i.id=pa.installment_id AND i.organization_id=pa.organization_id
+          JOIN receivable r ON r.id=i.receivable_id AND r.organization_id=i.organization_id
+          JOIN enrollment e ON e.id=r.enrollment_id AND e.organization_id=r.organization_id
+          WHERE pa.payment_id=a.entity_id AND pa.organization_id=a.organization_id AND e.student_id=$2))
+        OR (a.entity_type='payment_refund' AND EXISTS (SELECT 1 FROM payment_refund pr
+          JOIN payment_allocation pa ON pa.payment_id=pr.payment_id AND pa.organization_id=pr.organization_id
+          JOIN installment i ON i.id=pa.installment_id AND i.organization_id=pa.organization_id
+          JOIN receivable r ON r.id=i.receivable_id AND r.organization_id=i.organization_id
+          JOIN enrollment e ON e.id=r.enrollment_id AND e.organization_id=r.organization_id
+          WHERE pr.id=a.entity_id AND pr.organization_id=a.organization_id AND e.student_id=$2)))
       AND EXISTS (SELECT 1 FROM user_unit_membership m JOIN role_permission rp ON rp.role_id=m.role_id
         JOIN unit un ON un.id=m.unit_id AND un.organization_id=m.organization_id JOIN app_user u ON u.id=m.user_id
         WHERE m.organization_id=a.organization_id AND m.unit_id=a.unit_id AND m.user_id=$3
           AND m.active AND un.active AND u.status='ACTIVE' AND rp.permission_code='student.read')
+      AND (a.entity_type NOT IN ('credit_wallet','credit_reservation','receivable','payment','payment_refund','lesson') OR EXISTS (
+        SELECT 1 FROM user_unit_membership m JOIN role_permission rp ON rp.role_id=m.role_id
+        WHERE m.organization_id=a.organization_id AND m.unit_id=a.unit_id AND m.user_id=$3 AND m.active
+          AND rp.permission_code=CASE WHEN a.entity_type IN ('credit_wallet','credit_reservation') THEN 'credit.read'
+            WHEN a.entity_type='lesson' THEN 'lesson.read' ELSE 'finance.read' END))
     ORDER BY a.occurred_at DESC,a.id DESC LIMIT $6`,
     [identity.organizationId,studentId,identity.userId,cursor?.createdAt ?? null,cursor?.id ?? null,limit+1]);
   const hasMore=result.rows.length>limit,page=result.rows.slice(0,limit);

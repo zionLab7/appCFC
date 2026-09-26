@@ -1,0 +1,11 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://gp-cfc.local/schemas/events/resource.created.v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["resourceId","unitId","kind","name","category","availability"],
+  "properties":{
+    "resourceId":{"type":"string","format":"uuid"},"unitId":{"type":"string","format":"uuid"},
+    "kind":{"enum":["INSTRUCTOR","VEHICLE"]},"name":{"type":"string"},
+    "category":{"type":["string","null"]},"availability":{"type":"array"}
+  }
+}

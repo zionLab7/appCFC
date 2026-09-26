@@ -8,6 +8,8 @@ import { createPackage, createDraftVersion, deleteDraft, listCatalog, publishVer
 import { activateEnrollment, createEnrollment, getEnrollment } from './enrollments.js';
 import { getProcess, transitionProcess } from './processes.js';
 import { listTasks } from './tasks.js';
+import { getCredits, getFinance, receivePayment, refundPayment } from './finance.js';
+import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, listLessons, listResources, listStudentLessons } from './scheduling.js';
 
 const port = Number(process.env.PORT ?? 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be a valid TCP port');
@@ -45,7 +47,7 @@ const server = createServer(async (req,res) => {
     if (req.method==='GET' && url.pathname==='/health/live') return reply(res,200,{status:'ok'},correlationId);
     if (req.method==='GET' && url.pathname==='/health/ready') {
       try {
-        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='012_task_queue.sql'`);
+        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='016_lesson_completion.sql'`);
         if (!migration.rowCount) throw new Error('Schema is not current');
         return reply(res,200,{status:'ready'},correlationId);
       } catch { return reply(res,503,{code:'DATABASE_UNAVAILABLE',message:'Banco ou migrations indisponíveis',correlationId},correlationId); }
@@ -65,8 +67,33 @@ const server = createServer(async (req,res) => {
       return reply(res,200,await searchStudents(pool,identity,await jsonBody(req)),correlationId);
     if (url.pathname==='/api/v1/tasks' && req.method==='GET')
       return reply(res,200,await listTasks(pool,identity,url.searchParams),correlationId);
+    if (url.pathname==='/api/v1/resources' && req.method==='GET')
+      return reply(res,200,await listResources(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
+    if (url.pathname==='/api/v1/resources' && req.method==='POST')
+      return reply(res,201,await createResource(pool,identity,await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const resourceBlocks=/^\/api\/v1\/resources\/([^/]+)\/blocks$/.exec(url.pathname);
+    if (resourceBlocks && req.method==='POST')
+      return reply(res,201,await blockResource(pool,identity,resourceBlocks[1],await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    if (url.pathname==='/api/v1/lessons' && req.method==='POST')
+      return reply(res,201,await bookLesson(pool,identity,await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    if (url.pathname==='/api/v1/lessons' && req.method==='GET')
+      return reply(res,200,await listLessons(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
+    const lessonCancel=/^\/api\/v1\/lessons\/([^/]+)\/cancel$/.exec(url.pathname);
+    if (lessonCancel && req.method==='POST')
+      return reply(res,200,await cancelLesson(pool,identity,lessonCancel[1],await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const lessonComplete=/^\/api\/v1\/lessons\/([^/]+)\/complete$/.exec(url.pathname);
+    if (lessonComplete && req.method==='POST')
+      return reply(res,200,await completeLesson(pool,identity,lessonComplete[1],await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    if (url.pathname==='/api/v1/payments' && req.method==='POST')
+      return reply(res,201,await receivePayment(pool,identity,await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const paymentRefund=/^\/api\/v1\/payments\/([^/]+)\/refunds$/.exec(url.pathname);
+    if (paymentRefund && req.method==='POST')
+      return reply(res,201,await refundPayment(pool,identity,paymentRefund[1],await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
     const timeline = /^\/api\/v1\/students\/([^/]+)\/timeline$/.exec(url.pathname);
     if (timeline && req.method==='GET') return reply(res,200,await getStudentTimeline(pool,identity,timeline[1],url.searchParams),correlationId);
+    const studentLessons = /^\/api\/v1\/students\/([^/]+)\/lessons$/.exec(url.pathname);
+    if (studentLessons && req.method==='GET')
+      return reply(res,200,await listStudentLessons(pool,identity,studentLessons[1],url.searchParams.get('unitId') ?? ''),correlationId);
     const match = /^\/api\/v1\/students\/([^/]+)$/.exec(url.pathname);
     if (match && req.method==='GET') return reply(res,200,await getStudent(pool,identity,match[1]),correlationId);
     if (url.pathname==='/api/v1/catalog/packages' && req.method==='GET')
@@ -89,6 +116,12 @@ const server = createServer(async (req,res) => {
     const enrollmentActivate=/^\/api\/v1\/enrollments\/([^/]+)\/activate$/.exec(url.pathname);
     if (enrollmentActivate && req.method==='POST')
       return reply(res,200,await activateEnrollment(pool,identity,enrollmentActivate[1],await jsonBody(req),singleHeader(req,'idempotency-key'),correlationId),correlationId);
+    const enrollmentCredits=/^\/api\/v1\/enrollments\/([^/]+)\/credits$/.exec(url.pathname);
+    if (enrollmentCredits && req.method==='GET')
+      return reply(res,200,await getCredits(pool,identity,enrollmentCredits[1],url.searchParams.get('unitId') ?? ''),correlationId);
+    const enrollmentFinance=/^\/api\/v1\/enrollments\/([^/]+)\/finance$/.exec(url.pathname);
+    if (enrollmentFinance && req.method==='GET')
+      return reply(res,200,await getFinance(pool,identity,enrollmentFinance[1],url.searchParams.get('unitId') ?? ''),correlationId);
     const enrollment=/^\/api\/v1\/enrollments\/([^/]+)$/.exec(url.pathname);
     if (enrollment && req.method==='GET') return reply(res,200,await getEnrollment(pool,identity,enrollment[1]),correlationId);
     const processTransitions=/^\/api\/v1\/processes\/([^/]+)\/transitions$/.exec(url.pathname);
@@ -102,6 +135,8 @@ const server = createServer(async (req,res) => {
       return reply(res,error.status,{code:error.code,message:error.message,correlationId},correlationId);
     if (error && typeof error==='object' && 'code' in error && error.code==='23505')
       return reply(res,409,{code:'ALREADY_EXISTS',message:'Registro já existe',correlationId},correlationId);
+    if (error && typeof error==='object' && 'code' in error && error.code==='23P01')
+      return reply(res,409,{code:'SCHEDULE_CONFLICT',message:'Horário ocupado para aluno ou recurso',correlationId},correlationId);
     process.stderr.write(JSON.stringify({level:'error',correlationId,reason:'request_failed',errorCode:(error && typeof error==='object' && 'code' in error) ? String(error.code) : 'unknown'})+'\n');
     return reply(res,500,{code:'INTERNAL_ERROR',message:'Falha inesperada',correlationId},correlationId);
   }

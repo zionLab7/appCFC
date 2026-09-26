@@ -2,7 +2,7 @@
 
 **Estado verificado em 25/09/2026:** migrations 001–011 e seed passaram no PostgreSQL local; Keycloak autenticou a API com token; testes de domínio e integração em bancos `_test` passaram. ST-03/ST-07 (cadastro, busca, detalhe e trilha) e ST-04/ST-05/ST-06 têm fatia funcional de desenvolvimento e tela local; critérios de contrato real, workflow operacional, performance piloto e staging ainda não estão aceitos. ADR-006 registra a decisão reversível de manter HTTP modular nesta fatia.
 
-**Avanço em 26/09/2026:** migration 012, permissão `task.read`, fila paginada com filtros de vencimento e responsável, auditoria/outbox de tarefas e terceira área da interface foram validadas localmente. A branch `main` foi associada a `zionLab7/appCFC`; a execução do CI remoto e staging ainda precisam ser observados.
+**Avanço em 26/09/2026:** migration 012, permissão `task.read`, fila paginada com filtros de vencimento e responsável, auditoria/outbox de tarefas e terceira área da interface foram validadas localmente. A branch `main` foi publicada em `zionLab7/appCFC` e o CI remoto da v0.5 passou. A v0.6 acrescentou migrations 013–016 e fatias sintéticas de financeiro, crédito e agenda. Staging e critérios de operação real permanecem abertos.
 
 ## Sprint 0 — fundação (5 dias úteis, estimativa inicial)
 

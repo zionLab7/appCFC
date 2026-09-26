@@ -85,6 +85,11 @@
     .item-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 0; border-top: 1px solid #e9eff1; }
     .item-row strong { display: block; font-size: .88rem; margin-bottom: 3px; }
     .item-row .subtle { margin: 0; }
+    .commerce-detail { background: #f6f9fa; border: 1px solid #e0eaed; border-radius: 11px; padding: 15px; margin: 0 0 14px; }
+    .commerce-detail h4 { margin: 0 0 9px; font-size: .86rem; }
+    .commerce-detail p { margin: 5px 0; color: #516c7a; font-size: .82rem; }
+    .commerce-detail .inline-form { margin: 13px 0 0; background: #fff; }
+    .commerce-detail .inline-form label { flex-basis: 130px; }
     .row-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: end; }
     .minor-empty { color: #78909a; border-top: 1px solid #e9eff1; padding: 20px 0; font-size: .87rem; }
     .inline-form { display: flex; align-items: end; gap: 9px; flex-wrap: wrap; background: #f5f8f9; border: 1px solid #e4ecee; border-radius: 11px; padding: 13px; margin: 14px 0 5px; }
@@ -111,6 +116,10 @@
     .task-row strong { display: block; font-size: .9rem; margin-bottom: 4px; }
     .task-row .subtle { display: block; }
     .task-row .row-actions { align-items: center; }
+    .agenda-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 370px); align-items: start; gap: 18px; }
+    .weekday-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .weekday-grid label { display: flex; align-items: center; gap: 5px; }
+    .weekday-grid input { width: auto; }
     .pill.overdue { background: #fff0e6; color: #a14e24; }
     .stack { display: grid; gap: 15px; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -127,7 +136,7 @@
     #login h1 { font-size: 1.5rem; }
     #login p { color: #68818e; font-size: .9rem; line-height: 1.5; }
     #login button { margin-top: 8px; }
-    @media (max-width: 900px) { .student-layout { grid-template-columns: 1fr; } .page-head { align-items: start; } }
+    @media (max-width: 900px) { .student-layout, .agenda-grid { grid-template-columns: 1fr; } .page-head { align-items: start; } }
     @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } }
   </style>
 </head>
@@ -149,7 +158,7 @@
         <div><span class="eyebrow">Operação</span><h1 id="viewTitle">Alunos</h1><p id="viewDescription">Encontre um aluno e acompanhe a matrícula em um só lugar.</p></div>
         <div class="toolbar"><label>Unidade<select id="unit"><option value="00000000-0000-4000-8000-000000000011">Ponte Rasa</option><option value="00000000-0000-4000-8000-000000000012">Penha</option><option value="00000000-0000-4000-8000-000000000013">Mooca</option></select></label><button id="refresh" class="secondary">Atualizar</button></div>
       </div>
-      <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="students" class="active" aria-current="page">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="catalog">Catálogo</button></nav>
+      <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="students" class="active" aria-current="page">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="agenda">Agenda</button><button type="button" data-view="catalog">Catálogo</button></nav>
       <div id="notice" role="status" class="notice hidden"></div>
       <section id="studentView" class="student-layout">
         <aside class="card card-pad">
@@ -169,6 +178,10 @@
           <div id="tasks" aria-live="polite"></div>
         </div>
       </section>
+      <section id="agendaView" class="agenda-grid hidden">
+        <div class="card card-pad"><div class="catalog-head"><div><h2>Aulas da unidade</h2><p>Reservas futuras e aulas dos últimos sete dias.</p></div></div><div id="agendaLessons"></div></div>
+        <div class="card card-pad"><div class="catalog-head"><div><h2>Instrutores e veículos</h2><p>Cadastre disponibilidade e bloqueie horários.</p></div><button id="newResource" type="button" class="small">+ Recurso</button></div><div id="agendaResources"></div></div>
+      </section>
       <section id="catalogView" class="hidden">
         <div class="card card-pad"><div class="catalog-head"><div><h2>Pacotes e versões</h2><p>Consulte o catálogo da unidade e publique rascunhos conferidos.</p></div><button id="newPackage" type="button">+ Novo pacote</button></div><div id="catalog"></div></div>
       </section>
@@ -176,17 +189,41 @@
   </main>
   <dialog id="studentDialog" aria-labelledby="studentDialogTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="studentDialogTitle">Cadastrar aluno</h2><p>Use somente dados fictícios neste ambiente.</p></div><button type="button" class="ghost small" data-close="studentDialog" aria-label="Fechar">✕</button></div><form id="studentForm" class="stack"><label>Nome completo<input name="fullName" required minlength="2" maxlength="200" autocomplete="off"></label><label>Telefone fictício (opcional)<input name="phone" autocomplete="off" placeholder="(11) 00000-0000"></label><p id="studentDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="studentDialog">Cancelar</button><button type="submit">Cadastrar aluno</button></div></form></div></dialog>
   <dialog id="catalogDialog" aria-labelledby="catalogDialogTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="catalogDialogTitle">Novo pacote</h2><p>O pacote nasce em rascunho e fica restrito à unidade selecionada.</p></div><button type="button" class="ghost small" data-close="catalogDialog" aria-label="Fechar">✕</button></div><form id="catalogForm" class="stack"><div class="form-grid"><label>Código<input name="code" required pattern="[A-Za-z0-9_]+" placeholder="DEMO_B"></label><label>Tipo de serviço<input name="serviceType" required value="FIRST_LICENSE"></label></div><label>Nome do produto<input name="productName" required value="Primeira habilitação demo"></label><label>Nome do pacote<input name="packageName" required value="Pacote piloto"></label><div class="form-grid"><label>Preço em reais<input name="price" required type="number" min="0" step="0.01" value="1000.00"></label><label>Aulas fictícias<input name="quantity" required type="number" min="1" max="10000" value="2"></label></div><p id="catalogDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="catalogDialog">Cancelar</button><button type="submit">Criar rascunho</button></div></form></div></dialog>
+  <dialog id="resourceDialog" aria-labelledby="resourceDialogTitle">
+    <div class="dialog-content"><div class="dialog-head"><div><h2 id="resourceDialogTitle">Novo recurso</h2><p>Disponibilidade semanal fictícia para a unidade.</p></div><button type="button" class="ghost small" data-close="resourceDialog" aria-label="Fechar">✕</button></div>
+      <form id="resourceForm" class="stack"><div class="form-grid"><label>Tipo<select name="kind"><option value="INSTRUCTOR">Instrutor</option><option value="VEHICLE">Veículo</option></select></label><label>Categoria<input name="category" value="B" maxlength="20" required></label></div>
+        <label>Nome<input name="name" required minlength="2" maxlength="120"></label>
+        <div class="weekday-grid" aria-label="Dias disponíveis"><label><input type="checkbox" name="weekday" value="1" checked>Seg</label><label><input type="checkbox" name="weekday" value="2" checked>Ter</label><label><input type="checkbox" name="weekday" value="3" checked>Qua</label><label><input type="checkbox" name="weekday" value="4" checked>Qui</label><label><input type="checkbox" name="weekday" value="5" checked>Sex</label><label><input type="checkbox" name="weekday" value="6" checked>Sáb</label><label><input type="checkbox" name="weekday" value="0">Dom</label></div>
+        <div class="form-grid"><label>Das<input name="startsAt" type="time" value="08:00" required></label><label>Até<input name="endsAt" type="time" value="18:00" required></label></div>
+        <p id="resourceDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="resourceDialog">Cancelar</button><button type="submit">Cadastrar</button></div>
+      </form></div>
+  </dialog>
+  <dialog id="bookingDialog" aria-labelledby="bookingDialogTitle">
+    <div class="dialog-content"><div class="dialog-head"><div><h2 id="bookingDialogTitle">Reservar aula demo</h2><p>Reserva sintética com crédito, instrutor e veículo da unidade.</p></div><button type="button" class="ghost small" data-close="bookingDialog" aria-label="Fechar">✕</button></div>
+      <form id="bookingForm" class="stack"><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><label>Categoria<input name="category" value="B" maxlength="20" required></label>
+        <div class="form-grid"><label>Instrutor<select name="instructorId" required></select></label><label>Veículo<select name="vehicleId" required></select></label></div><label>Crédito de aula<select name="walletId" required></select></label>
+        <p id="bookingDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="bookingDialog">Cancelar</button><button type="submit">Reservar aula</button></div>
+      </form></div>
+  </dialog>
+  <dialog id="blockDialog" aria-labelledby="blockDialogTitle">
+    <div class="dialog-content"><div class="dialog-head"><div><h2 id="blockDialogTitle">Bloquear recurso</h2><p>O bloqueio impede novas reservas neste horário.</p></div><button type="button" class="ghost small" data-close="blockDialog" aria-label="Fechar">✕</button></div>
+      <form id="blockForm" class="stack"><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><label>Motivo<input name="reason" required minlength="2" maxlength="200"></label>
+        <p id="blockDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="blockDialog">Cancelar</button><button type="submit">Bloquear</button></div>
+      </form></div>
+  </dialog>
   <script type="module">
     const realm = 'http://localhost:8080/realms/gp-cfc-dev';
+    const appUrl = location.protocol === 'file:' ? 'http://127.0.0.1:3000/app' : location.origin + '/app';
+    if (location.protocol === 'file:') location.replace(appUrl);
     const organizationId = '00000000-0000-4000-8000-000000000001';
     const $ = id => document.getElementById(id);
     const node = (tag, text, className) => { const element = document.createElement(tag); if (text !== undefined) element.textContent = String(text); if (className) element.className = className; return element; };
     const unit = () => $('unit').value;
     const money = cents => (Number(cents) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const date = value => new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-    const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente', OPEN: 'Aberta', DONE: 'Concluída' };
-    const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída' };
-    let token = '', students = [], catalog = [], tasks = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'students';
+    const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente', OPEN: 'Aberta', DONE: 'Concluída', PARTIALLY_PAID: 'Pagamento parcial', PAID: 'Pago', RESERVED: 'Reservada', CANCELLED_BY_CFC: 'Cancelada' };
+    const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída', 'credit.granted': 'Créditos adicionados', 'credit.reserved': 'Crédito reservado', 'credit.released': 'Crédito liberado', 'credit.consumed': 'Crédito consumido', 'receivable.created': 'Recebível criado', 'payment.received': 'Pagamento registrado', 'payment.refunded': 'Estorno registrado', 'lesson.booked': 'Aula reservada', 'lesson.cancelled': 'Aula cancelada', 'lesson.completed': 'Aula concluída' };
+    let token = '', students = [], catalog = [], tasks = [], resources = [], lessons = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'students', bookingContext = null, blockResourceId = null;
     function notice(message, kind = 'info') { const target = $('notice'); target.textContent = message; target.className = 'notice ' + kind; }
     function clearNotice() { $('notice').className = 'notice hidden'; }
     function errorText(error) { if (error?.status === 403) return 'Sem permissão nesta unidade.'; if (error?.status === 401) return 'Sessão expirada. Entre novamente.'; return error?.message || 'Falha inesperada.'; }
@@ -196,7 +233,7 @@
       sessionStorage.setItem('gp-pkce-verifier', verifier); sessionStorage.setItem('gp-pkce-state', state);
       const challenge = b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
       const url = new URL(realm + '/protocol/openid-connect/auth');
-      url.search = new URLSearchParams({ client_id: 'gp-cfc-dev', response_type: 'code', scope: 'openid', redirect_uri: location.origin + '/app', code_challenge: challenge, code_challenge_method: 'S256', state });
+      url.search = new URLSearchParams({ client_id: 'gp-cfc-dev', response_type: 'code', scope: 'openid', redirect_uri: appUrl, code_challenge: challenge, code_challenge_method: 'S256', state });
       location.assign(url);
     }
     async function completeLogin() {
@@ -204,7 +241,7 @@
       if (!code) return;
       if (query.get('state') !== sessionStorage.getItem('gp-pkce-state')) throw new Error('Estado de login inválido');
       const verifier = sessionStorage.getItem('gp-pkce-verifier'); if (!verifier) throw new Error('Sessão de login expirada');
-      const response = await fetch(realm + '/protocol/openid-connect/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', client_id: 'gp-cfc-dev', code, code_verifier: verifier, redirect_uri: location.origin + '/app' }) });
+      const response = await fetch(realm + '/protocol/openid-connect/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', client_id: 'gp-cfc-dev', code, code_verifier: verifier, redirect_uri: appUrl }) });
       const result = await response.json(); if (!response.ok || !result.access_token) throw new Error('Falha ao concluir login');
       token = result.access_token; sessionStorage.removeItem('gp-pkce-verifier'); sessionStorage.removeItem('gp-pkce-state'); history.replaceState({}, '', location.pathname);
     }
@@ -217,12 +254,39 @@
     }
     function setView(view) {
       activeView = view;
-      $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('catalogView').classList.toggle('hidden', view !== 'catalog');
-      $('viewTitle').textContent = view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : 'Catálogo';
-      $('viewDescription').textContent = view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
+      $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('agendaView').classList.toggle('hidden', view !== 'agenda'); $('catalogView').classList.toggle('hidden', view !== 'catalog');
+      $('viewTitle').textContent = view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : view === 'agenda' ? 'Agenda' : 'Catálogo';
+      $('viewDescription').textContent = view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : view === 'agenda' ? 'Veja aulas, instrutores e veículos da unidade.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
       for (const button of document.querySelectorAll('[data-view]')) { const active = button.dataset.view === view; button.classList.toggle('active', active); if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); }
       clearNotice();
       if (view === 'tasks') void loadTasks();
+      if (view === 'agenda') void loadAgenda();
+    }
+    async function loadAgenda() {
+      const requestedUnit = unit(); $('agendaLessons').textContent = 'Carregando aulas…'; $('agendaResources').textContent = 'Carregando recursos…';
+      try { const [lessonPage,resourcePage] = await Promise.all([api('/lessons?unitId=' + requestedUnit),api('/resources?unitId=' + requestedUnit)]);
+        if (unit() !== requestedUnit) return; lessons = lessonPage.data; resources = resourcePage.data; renderAgenda();
+      } catch (error) { if (unit() !== requestedUnit) return; $('agendaLessons').textContent = errorText(error); $('agendaResources').textContent = errorText(error); }
+    }
+    function renderAgenda() {
+      const lessonTarget = $('agendaLessons'), resourceTarget = $('agendaResources'); lessonTarget.replaceChildren(); resourceTarget.replaceChildren();
+      if (!lessons.length) lessonTarget.append(node('p', 'Nenhuma aula recente nesta unidade.', 'minor-empty'));
+      for (const lesson of lessons) {
+        const row=node('div',undefined,'task-row'),info=node('div'),actions=node('div',undefined,'row-actions');
+        info.append(node('strong',lesson.studentName+' · '+date(lesson.startsAt)),node('span',lesson.category+' · '+(lesson.instructorName || 'Sem instrutor')+' · '+(lesson.vehicleName || 'Sem veículo'),'subtle'));
+        actions.append(node('span',statusNames[lesson.status] || lesson.status,'pill '+lesson.status.toLowerCase()));
+        const open=node('button','Abrir aluno','small secondary'); open.onclick=async()=>{setView('students');await selectStudent(lesson.studentId);await showProcess(lesson.processId);}; actions.append(open);
+        if (lesson.status==='RESERVED') { const complete=node('button','Concluir demo','small'); complete.onclick=async()=>{try{await api('/lessons/'+lesson.id+'/complete',{method:'POST',body:{unitId:unit(),demoAttendanceConfirmed:true}});notice('Aula sintética concluída e crédito consumido.','success');await loadAgenda();}catch(error){notice(errorText(error),'error');}};actions.append(complete);
+          const cancel=node('button','Cancelar demo','small secondary'); cancel.onclick=async()=>{const reason='Cancelamento sintético pela unidade'; try {await api('/lessons/'+lesson.id+'/cancel',{method:'POST',body:{unitId:unit(),reason}});notice('Reserva cancelada e crédito liberado.','success');await loadAgenda();} catch(error){notice(errorText(error),'error');}}; actions.append(cancel); }
+        row.append(info,actions);lessonTarget.append(row);
+      }
+      if (!resources.length) resourceTarget.append(node('p','Cadastre um instrutor e um veículo para reservar aulas.','minor-empty'));
+      for (const resource of resources) {
+        const row=node('div',undefined,'task-row'),info=node('div'),actions=node('div',undefined,'row-actions');
+        info.append(node('strong',resource.name),node('span',(resource.kind==='INSTRUCTOR'?'Instrutor':'Veículo')+' · categoria '+(resource.category || 'livre')+' · '+resource.availability.length+' horário(s) semanal(is)','subtle'));
+        const block=node('button','Bloquear','small secondary'); block.onclick=()=>{blockResourceId=resource.id;$('blockDialogStatus').classList.add('hidden');$('blockDialog').showModal();}; actions.append(block);
+        row.append(info,actions);resourceTarget.append(row);
+      }
     }
     async function loadTasks(cursor = null) {
       const requestedUnit = unit(), view = $('taskFilter').value, owner = $('taskOwner').value;
@@ -311,11 +375,21 @@
         const actions = node('div', undefined, 'row-actions'); actions.append(node('span', statusNames[enrollment.status] || enrollment.status, 'pill ' + enrollment.status.toLowerCase()));
         if (enrollment.status === 'DRAFT') { const activate = node('button', 'Ativar demo', 'small'); activate.title = 'Ativação sintética sem contrato assinado'; activate.onclick = async () => { try { await api('/enrollments/' + enrollment.id + '/activate', { method: 'POST', body: { unitId: unit(), demoActivationConfirmed: true } }); notice('Matrícula de demonstração ativada, sem contrato real.', 'success'); await selectStudent(student.id); } catch (error) { notice(errorText(error), 'error'); } }; actions.append(activate); }
         if (enrollment.processId) { const open = node('button', 'Ver processo', 'small secondary'); open.onclick = () => showProcess(enrollment.processId); actions.append(open); }
+        if (enrollment.status === 'ACTIVE' && enrollment.processId) { const book=node('button','Reservar aula','small'); book.onclick=()=>openBooking(student.id,enrollment.id,enrollment.processId); actions.append(book); }
         row.append(info, actions); target.append(row);
+        if (enrollment.status === 'ACTIVE') {
+          const commerce = node('div', undefined, 'commerce-detail hidden');
+          const toggle = node('button', 'Créditos e financeiro', 'small secondary'); actions.append(toggle);
+          toggle.onclick = async () => {
+            if (!commerce.classList.contains('hidden')) { commerce.classList.add('hidden'); return; }
+            commerce.classList.remove('hidden'); await showCommerce(enrollment.id,commerce);
+          };
+          target.append(commerce);
+        }
       }
       const published = catalog.filter(pkg => pkg.publishedAt);
       const form = node('form', undefined, 'inline-form'), label = node('label', 'Nova matrícula · pacote publicado'), select = node('select'); select.required = true;
-      for (const pkg of published) { const option = node('option', pkg.packageName + ' v' + pkg.version + ' · ' + money(pkg.priceCents) + (pkg.unitId ? '' : ' · compartilhado')); option.value = pkg.versionId; select.append(option); }
+      for (const pkg of published) { const option = node('option', pkg.packageName + ' · ' + pkg.code + ' v' + pkg.version + ' · ' + money(pkg.priceCents) + (pkg.unitId ? '' : ' · compartilhado')); option.value = pkg.versionId; select.append(option); }
       label.append(select); const create = node('button', 'Criar rascunho', 'small'); create.disabled = !published.length; form.append(label, create);
       form.onsubmit = async event => { event.preventDefault(); const pkg = catalog.find(x => x.versionId === select.value); if (!pkg) return; try { await api('/enrollments', { method: 'POST', body: { unitId: unit(), studentId: student.id, packageVersionId: pkg.versionId, agreedPriceCents: Number(pkg.priceCents) } }); notice('Matrícula criada em rascunho.', 'success'); await selectStudent(student.id); } catch (error) { notice(errorText(error), 'error'); } };
       target.append(form); if (!published.length) target.append(node('p', 'Publique um pacote no catálogo para criar matrículas.', 'subtle'));
@@ -328,6 +402,84 @@
         if (page.nextCursor) { const more = node('button', 'Ver eventos anteriores', 'secondary small'); more.dataset.timelineMore = ''; more.onclick = async () => { more.disabled = true; try { appendTimeline(await api('/students/' + student.id + '/timeline?cursor=' + encodeURIComponent(page.nextCursor))); } catch (error) { more.disabled = false; notice(errorText(error), 'error'); } }; target.append(more); }
       }
       appendTimeline(timeline);
+    }
+    async function showCommerce(enrollmentId, target) {
+      target.textContent = 'Carregando créditos e financeiro…';
+      const requestedUnit = unit();
+      try {
+        const [credits,finance] = await Promise.all([
+          api('/enrollments/' + enrollmentId + '/credits?unitId=' + requestedUnit),
+          api('/enrollments/' + enrollmentId + '/finance?unitId=' + requestedUnit)
+        ]);
+        if (unit() !== requestedUnit || !target.isConnected) return;
+        target.replaceChildren(node('h4', 'Créditos contratados'));
+        if (!credits.data.length) target.append(node('p', 'Este pacote não tem créditos cadastrados.'));
+        for (const wallet of credits.data) target.append(node('p', wallet.itemType + ': ' + wallet.available + ' disponível(is) · ' + wallet.held + ' reservado(s) · ' + wallet.consumed + ' consumido(s)'));
+        target.append(node('h4', 'Recebível'));
+        if (!finance.data.length) target.append(node('p', 'Sem cobrança para esta matrícula.'));
+        for (const installment of finance.data) {
+          const outstanding = installment.installmentCents - installment.paidCents;
+          target.append(node('p', 'Parcela ' + installment.number + ' · vencimento ' + String(installment.dueDate).slice(0,10).split('-').reverse().join('/') +
+            ' · ' + money(installment.paidCents) + ' de ' + money(installment.installmentCents) + ' recebido(s) · ' + (statusNames[installment.status] || installment.status)));
+          if (outstanding > 0) {
+            const form = node('form', undefined, 'inline-form');
+            const amountLabel = node('label', 'Valor recebido (R$)'), amount = node('input'); amount.name = 'amount'; amount.type = 'number'; amount.min = '0.01'; amount.max = (outstanding / 100).toFixed(2); amount.step = '0.01'; amount.required = true; amount.value = (outstanding / 100).toFixed(2); amountLabel.append(amount);
+            const methodLabel = node('label', 'Forma'), method = node('select'); method.name = 'method';
+            for (const [value,label] of [['CASH','Dinheiro'],['PIX','PIX'],['TRANSFER','Transferência']]) { const option = node('option',label); option.value = value; method.append(option); }
+            methodLabel.append(method);
+            const referenceLabel = node('label', 'Referência para PIX/transferência'), reference = node('input'); reference.name = 'reference'; reference.placeholder = 'Identificador fictício'; referenceLabel.append(reference);
+            const submit = node('button', 'Registrar pagamento demo', 'small'); form.append(amountLabel,methodLabel,referenceLabel,submit);
+            form.onsubmit = async event => {
+              event.preventDefault(); const data = new FormData(form), received = Math.round(Number(data.get('amount')) * 100);
+              if (!Number.isSafeInteger(received) || received < 1 || received > outstanding) { notice('Valor inválido para esta parcela.', 'error'); return; }
+              submit.disabled = true;
+              try { await api('/payments', {method:'POST',body:{unitId:requestedUnit,installmentId:installment.installmentId,amountCents:received,method:data.get('method'),...(String(data.get('reference') || '').trim() ? {externalReference:String(data.get('reference')).trim()} : {})}});
+                notice('Pagamento de demonstração registrado.', 'success'); await showCommerce(enrollmentId,target);
+              } catch(error) { notice(errorText(error),'error'); submit.disabled = false; }
+            };
+            target.append(form);
+          }
+        }
+        if (finance.payments?.length) {
+          target.append(node('h4', 'Pagamentos registrados'));
+          for (const payment of finance.payments) {
+            const refundable = payment.amountCents - payment.refundedCents;
+            target.append(node('p', payment.method + ' · ' + money(payment.amountCents) + ' recebido(s) · ' + money(payment.refundedCents) + ' estornado(s)'));
+            if (refundable > 0) {
+              const form = node('form', undefined, 'inline-form'), amountLabel = node('label', 'Valor do estorno (R$)'), amount = node('input');
+              amount.type = 'number'; amount.name = 'amount'; amount.min = '0.01'; amount.max = (refundable / 100).toFixed(2); amount.step = '0.01'; amount.value = (refundable / 100).toFixed(2); amount.required = true; amountLabel.append(amount);
+              const reasonLabel = node('label', 'Motivo'), reason = node('input'); reason.name = 'reason'; reason.minLength = 2; reason.maxLength = 200; reason.required = true; reason.placeholder = 'Motivo fictício'; reasonLabel.append(reason);
+              const submit = node('button', 'Estornar demo', 'small secondary'); form.append(amountLabel,reasonLabel,submit);
+              form.onsubmit = async event => {
+                event.preventDefault(); const data = new FormData(form), value = Math.round(Number(data.get('amount')) * 100);
+                if (!Number.isSafeInteger(value) || value < 1 || value > refundable) { notice('Valor inválido para estorno.', 'error'); return; }
+                submit.disabled = true;
+                try { await api('/payments/' + payment.id + '/refunds', {method:'POST',body:{unitId:requestedUnit,amountCents:value,reason:String(data.get('reason'))}});
+                  notice('Estorno de demonstração registrado.', 'success'); await showCommerce(enrollmentId,target);
+                } catch(error) { notice(errorText(error),'error'); submit.disabled = false; }
+              };
+              target.append(form);
+            }
+          }
+        }
+      } catch (error) { target.textContent = errorText(error); }
+    }
+    async function openBooking(studentId,enrollmentId,processId) {
+      const requestedUnit=unit(); bookingContext={studentId,enrollmentId,processId,unitId:requestedUnit};
+      try {
+        const [creditPage,resourcePage]=await Promise.all([
+          api('/enrollments/'+enrollmentId+'/credits?unitId='+requestedUnit),api('/resources?unitId='+requestedUnit)]);
+        if (unit()!==requestedUnit) return;
+        const wallets=creditPage.data.filter(wallet=>wallet.itemType.startsWith('LESSON') && wallet.available>0);
+        const instructors=resourcePage.data.filter(resource=>resource.kind==='INSTRUCTOR'),vehicles=resourcePage.data.filter(resource=>resource.kind==='VEHICLE');
+        if (!wallets.length || !instructors.length || !vehicles.length) {notice('A matrícula precisa de crédito de aula, instrutor e veículo disponíveis.','error');return;}
+        const form=$('bookingForm');
+        for (const [name,items,label] of [['walletId',wallets,item=>item.itemType+' · '+item.available+' disponível(is)'],['instructorId',instructors,item=>item.name],['vehicleId',vehicles,item=>item.name]]) {
+          const select=form.elements.namedItem(name); select.replaceChildren();
+          for (const item of items) {const option=node('option',label(item));option.value=item.id;select.append(option);}
+        }
+        $('bookingDialogStatus').classList.add('hidden');$('bookingDialog').showModal();
+      } catch(error){notice(errorText(error),'error');}
     }
     async function showProcess(id) {
       $('processCard').classList.remove('hidden'); $('process').textContent = 'Carregando processo…';
@@ -350,12 +502,31 @@
     for (const button of document.querySelectorAll('[data-close]')) button.onclick = () => $(button.dataset.close).close();
     $('newStudent').onclick = () => { $('studentDialogStatus').classList.add('hidden'); $('studentDialog').showModal(); };
     $('newPackage').onclick = () => { $('catalogDialogStatus').classList.add('hidden'); $('catalogDialog').showModal(); };
-    $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
-    $('unit').onchange = async () => { selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : [])]); };
+    $('newResource').onclick = () => { $('resourceDialogStatus').classList.add('hidden'); $('resourceDialog').showModal(); };
+    $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
+    $('unit').onchange = async () => { selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : [])]); };
     $('searchForm').onsubmit = async event => { event.preventDefault(); searchQuery = String(new FormData(event.currentTarget).get('query') || '').trim(); await loadStudents(); };
     $('clearSearch').onclick = async () => { $('searchForm').reset(); searchQuery = ''; await loadStudents(); };
     $('studentForm').onsubmit = async event => { event.preventDefault(); const form = event.currentTarget, data = new FormData(form); try { const phone = String(data.get('phone') || '').trim(); const student = await api('/students', { method: 'POST', body: { unitId: unit(), fullName: data.get('fullName'), ...(phone ? { phone } : {}) } }); form.reset(); $('studentDialog').close(); searchQuery = ''; $('searchForm').reset(); notice('Aluno cadastrado.', 'success'); await loadStudents(); await selectStudent(student.id); } catch (error) { const target = $('studentDialogStatus'); target.textContent = errorText(error); target.classList.remove('hidden'); } };
     $('catalogForm').onsubmit = async event => { event.preventDefault(); const form = event.currentTarget, data = new FormData(form); try { const price = Number(data.get('price')), quantity = Number(data.get('quantity')); await api('/catalog/packages', { method: 'POST', body: { unitId: unit(), code: data.get('code'), productName: data.get('productName'), serviceType: data.get('serviceType'), packageName: data.get('packageName'), priceCents: Math.round(price * 100), items: [{ itemType: 'LESSON_DEMO', quantity }] } }); form.reset(); $('catalogDialog').close(); notice('Pacote criado em rascunho.', 'success'); await loadCatalog(); } catch (error) { const target = $('catalogDialogStatus'); target.textContent = errorText(error); target.classList.remove('hidden'); } };
+    $('resourceForm').onsubmit = async event => { event.preventDefault(); const form=event.currentTarget,data=new FormData(form); try {
+      const weekdays=data.getAll('weekday').map(Number),startsAt=String(data.get('startsAt')),endsAt=String(data.get('endsAt'));
+      if (!weekdays.length || startsAt>=endsAt) throw new Error('Selecione dias e um horário válido.');
+      await api('/resources',{method:'POST',body:{unitId:unit(),kind:data.get('kind'),name:data.get('name'),category:data.get('category'),availability:weekdays.map(weekday=>({weekday,startsAt,endsAt}))}});
+      $('resourceDialog').close();notice('Recurso de demonstração cadastrado.','success');await loadAgenda();
+    } catch(error){const target=$('resourceDialogStatus');target.textContent=errorText(error);target.classList.remove('hidden');} };
+    $('bookingForm').onsubmit = async event => { event.preventDefault(); const form=event.currentTarget,data=new FormData(form),context=bookingContext;
+      if (!context || context.unitId!==unit()) return;
+      try { await api('/lessons',{method:'POST',body:{unitId:context.unitId,studentId:context.studentId,processId:context.processId,
+        walletId:data.get('walletId'),category:data.get('category'),instructorId:data.get('instructorId'),vehicleId:data.get('vehicleId'),
+        startsAt:new Date(String(data.get('startsAt'))).toISOString(),endsAt:new Date(String(data.get('endsAt'))).toISOString()}});
+        $('bookingDialog').close();notice('Aula de demonstração reservada.','success');
+      } catch(error){const target=$('bookingDialogStatus');target.textContent=errorText(error);target.classList.remove('hidden');} };
+    $('blockForm').onsubmit = async event => { event.preventDefault(); const form=event.currentTarget,data=new FormData(form),resourceId=blockResourceId;
+      if (!resourceId) return;
+      try { await api('/resources/'+resourceId+'/blocks',{method:'POST',body:{unitId:unit(),startsAt:new Date(String(data.get('startsAt'))).toISOString(),endsAt:new Date(String(data.get('endsAt'))).toISOString(),reason:data.get('reason')}});
+        $('blockDialog').close();notice('Bloqueio cadastrado.','success');await loadAgenda();
+      } catch(error){const target=$('blockDialogStatus');target.textContent=errorText(error);target.classList.remove('hidden');} };
     try { await completeLogin(); if (token) { $('login').classList.add('hidden'); $('workspace').classList.remove('hidden'); $('logout').classList.remove('hidden'); await Promise.all([loadStudents(), loadCatalog()]); } } catch (error) { $('loginStatus').textContent = errorText(error); }
   </script>
 </body>

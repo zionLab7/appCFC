@@ -7,7 +7,11 @@
 | enrollment.write | ✓ | ✓ | proposta | — | — | — | — |
 | process.transition | ✓ | ✓ | — | — | aula própria | ✓ | — |
 | task.read | ✓ | ✓ | — | — | atribuída | ✓ | — |
+| credit.read | ✓ | ✓ | — | ✓ | — | ✓ | — |
+| finance.read | ✓ | autorizada | — | ✓ | — | — | — |
+| resource.read/write | ✓ | leitura | — | — | leitura | ✓ | — |
 | lesson.book | ✓ | ✓ | — | — | — | ✓ | — |
+| lesson.read/cancel/complete | ✓ | autorizada | — | — | aula própria | ✓ | — |
 | payment.receive | ✓ | autorizada | — | ✓ | — | — | — |
 | payment.refund | ✓ + razão | — | — | ✓ + aprovação | — | — | — |
 | automation.execute | ✓ | autorizada | — | — | — | autorizada | job próprio |

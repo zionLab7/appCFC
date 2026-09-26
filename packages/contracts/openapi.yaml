@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GP CFC API
-  version: 0.5.0
+  version: 0.6.0
   description: Rotas marcadas implemented funcionam na API local; demais rotas são alvo de produto.
 servers:
   - url: http://localhost:3000
@@ -86,6 +86,12 @@ paths:
       x-implementation-status: implemented
       parameters: [ { $ref: '#/components/parameters/StudentId' }, { $ref: '#/components/parameters/OrganizationId' }, { name: cursor, in: query, schema: { type: string } }, { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 30 } } ]
       responses: { '200': { description: Eventos auditados do aluno e suas matrículas e processos visíveis, content: { application/json: { schema: { $ref: '#/components/schemas/StudentTimelinePage' } } } }, '404': { $ref: '#/components/responses/Problem' } }
+  /api/v1/students/{studentId}/lessons:
+    get:
+      operationId: listStudentLessons
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/StudentId' }, { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Até 100 aulas da unidade para o aluno }, '403': { $ref: '#/components/responses/Problem' } }
   /api/v1/tasks:
     get:
       operationId: listTasks
@@ -163,7 +169,19 @@ paths:
       description: A confirmação é sintética; a ativação só está habilitada em NODE_ENV=development ou test até existir assinatura verificável.
       parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: enrollmentId, in: path, required: true, schema: { type: string, format: uuid } } ]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,demoActivationConfirmed], properties: { unitId: { type: string, format: uuid }, demoActivationConfirmed: { type: boolean, const: true } } } } } }
-      responses: { '200': { description: Matrícula ativa e processo criado no mesmo commit }, '409': { $ref: '#/components/responses/Problem' } }
+      responses: { '200': { description: Matrícula ativa, processo, créditos e recebível criados no mesmo commit }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/enrollments/{enrollmentId}/credits:
+    get:
+      operationId: getEnrollmentCredits
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' }, { name: enrollmentId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses: { '200': { description: Saldo, reservas e consumo de créditos da matrícula }, '403': { $ref: '#/components/responses/Problem' }, '404': { $ref: '#/components/responses/Problem' } }
+  /api/v1/enrollments/{enrollmentId}/finance:
+    get:
+      operationId: getEnrollmentFinance
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' }, { name: enrollmentId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      responses: { '200': { description: Recebível, parcelas e valores recebidos da matrícula }, '403': { $ref: '#/components/responses/Problem' }, '404': { $ref: '#/components/responses/Problem' } }
   /api/v1/processes/{processId}:
     get:
       operationId: getProcess
@@ -196,10 +214,35 @@ paths:
         - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
         - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
       responses: { '200': { description: Sugestões sujeitas a reconfirmação no POST } }
+  /api/v1/resources:
+    get:
+      operationId: listResources
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Recursos ativos e disponibilidade semanal da unidade } }
+    post:
+      operationId: createResource
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateResource' } } } }
+      responses: { '201': { description: Recurso com disponibilidade semanal criado }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/resources/{resourceId}/blocks:
+    post:
+      operationId: blockResource
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: resourceId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,startsAt,endsAt,reason], properties: { unitId: { type: string, format: uuid }, startsAt: { type: string, format: date-time }, endsAt: { type: string, format: date-time }, reason: { type: string } } } } } }
+      responses: { '201': { description: Bloqueio criado se não conflita com reserva ativa }, '409': { $ref: '#/components/responses/Problem' } }
   /api/v1/lessons:
+    get:
+      operationId: listLessons
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Até 100 aulas da unidade a partir dos últimos sete dias } }
     post:
       operationId: bookLesson
-      x-implementation-status: planned
+      x-implementation-status: implemented
+      x-development-only: true
       parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       requestBody:
         required: true
@@ -208,18 +251,40 @@ paths:
   /api/v1/lessons/{lessonId}/cancel:
     post:
       operationId: cancelLesson
-      x-implementation-status: planned
+      x-implementation-status: implemented
+      x-development-only: true
       parameters: [ { name: lessonId, in: path, required: true, schema: { type: string, format: uuid } }, { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
-      responses: { '200': { description: Aula cancelada, crédito tratado conforme regra } }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,reason], properties: { unitId: { type: string, format: uuid }, reason: { type: string, minLength: 2 } } } } } }
+      responses: { '200': { description: Aula cancelada, reservas liberadas e crédito novamente disponível } }
+  /api/v1/lessons/{lessonId}/complete:
+    post:
+      operationId: completeLesson
+      x-implementation-status: implemented
+      x-development-only: true
+      description: Confirmação sintética de presença de aluno e instrutor; consome o crédito reservado em uma transação.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: lessonId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,demoAttendanceConfirmed], properties: { unitId: { type: string, format: uuid }, demoAttendanceConfirmed: { type: boolean, const: true } } } } } }
+      responses: { '200': { description: Presença e consumo de crédito registrados com auditoria e eventos }, '409': { $ref: '#/components/responses/Problem' } }
   /api/v1/payments:
     post:
       operationId: receivePayment
-      x-implementation-status: planned
+      x-implementation-status: implemented
+      x-development-only: true
+      description: Recebimento manual sintético para uma parcela; bloqueado fora de development/test até validação de conciliação.
       parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/ReceivePayment' } } }
-      responses: { '201': { description: Pagamento registrado }, '409': { $ref: '#/components/responses/Problem' } }
+      responses: { '201': { description: Pagamento, alocação, journal balanceado, auditoria e evento registrados juntos }, '409': { $ref: '#/components/responses/Problem' } }
+  /api/v1/payments/{paymentId}/refunds:
+    post:
+      operationId: refundPayment
+      x-implementation-status: implemented
+      x-development-only: true
+      description: Estorno manual sintético, com reversão da alocação e journal; bloqueado fora de development/test.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/IdempotencyKey' }, { name: paymentId, in: path, required: true, schema: { type: string, format: uuid } } ]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [unitId,amountCents,reason], properties: { unitId: { type: string, format: uuid }, amountCents: { type: integer, minimum: 1 }, reason: { type: string, minLength: 2, maxLength: 200 } } } } } }
+      responses: { '201': { description: Estorno, reversão, journal, auditoria e evento registrados juntos }, '409': { $ref: '#/components/responses/Problem' } }
   /api/v1/automation-jobs:
     post:
       operationId: requestAutomation
@@ -394,31 +459,45 @@ components:
         reason: { type: string }
     BookLesson:
       type: object
-      required: [unitId,studentId,processId,category,startsAt,endsAt,instructorId,vehicleId]
+      required: [unitId,studentId,processId,walletId,category,startsAt,endsAt,instructorId,vehicleId]
       properties:
         unitId: { type: string, format: uuid }
         studentId: { type: string, format: uuid }
         processId: { type: string, format: uuid }
+        walletId: { type: string, format: uuid }
         category: { type: string }
         startsAt: { type: string, format: date-time }
         endsAt: { type: string, format: date-time }
         instructorId: { type: string, format: uuid }
         vehicleId: { type: string, format: uuid }
-    ReceivePayment:
+    CreateResource:
       type: object
-      required: [unitId,amountCents,method,allocations]
+      required: [unitId,kind,name,availability]
       properties:
         unitId: { type: string, format: uuid }
-        amountCents: { type: integer, minimum: 1 }
-        method: { enum: [CASH,PIX,DEBIT_CARD,CREDIT_CARD,BOLETO,TRANSFER,GATEWAY] }
-        allocations:
+        kind: { enum: [INSTRUCTOR,VEHICLE] }
+        name: { type: string, minLength: 2, maxLength: 120 }
+        category: { type: string, description: Obrigatória para veículo }
+        availability:
           type: array
+          minItems: 1
+          maxItems: 14
           items:
             type: object
-            required: [installmentId,amountCents]
+            required: [weekday,startsAt,endsAt]
             properties:
-              installmentId: { type: string, format: uuid }
-              amountCents: { type: integer, minimum: 1 }
+              weekday: { type: integer, minimum: 0, maximum: 6 }
+              startsAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+              endsAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+    ReceivePayment:
+      type: object
+      required: [unitId,installmentId,amountCents,method]
+      properties:
+        unitId: { type: string, format: uuid }
+        installmentId: { type: string, format: uuid }
+        amountCents: { type: integer, minimum: 1 }
+        method: { enum: [CASH,PIX,TRANSFER] }
+        externalReference: { type: string, minLength: 3, maxLength: 120, description: Obrigatório para PIX e transferência }
     AutomationRequest:
       type: object
       required: [unitId,processId,provider,operation]

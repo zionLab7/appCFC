@@ -1,0 +1,11 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://gp-cfc.local/schemas/events/resource.blocked.v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["blockId","resourceId","startsAt","endsAt","reason"],
+  "properties":{
+    "blockId":{"type":"string","format":"uuid"},"resourceId":{"type":"string","format":"uuid"},
+    "startsAt":{"type":"string","format":"date-time"},"endsAt":{"type":"string","format":"date-time"},
+    "reason":{"type":"string"}
+  }
+}

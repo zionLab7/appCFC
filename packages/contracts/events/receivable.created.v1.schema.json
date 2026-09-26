@@ -1,0 +1,13 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://gp-cfc.local/schemas/events/receivable.created.v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["receivableId","enrollmentId","installmentId","amountCents","dueDate"],
+  "properties":{
+    "receivableId":{"type":"string","format":"uuid"},
+    "enrollmentId":{"type":"string","format":"uuid"},
+    "installmentId":{"type":"string","format":"uuid"},
+    "amountCents":{"type":"integer","minimum":1},
+    "dueDate":{"type":"string","format":"date"}
+  }
+}

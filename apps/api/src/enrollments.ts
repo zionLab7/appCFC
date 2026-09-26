@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 import { HttpError, type Identity } from './auth.js';
 import { cents, idempotent, object, only, record, requireUnit, uuid } from './operations.js';
+import { provisionActivation } from './finance.js';
 
 export async function createEnrollment(pool: Pool, identity: Identity, raw: unknown,
   key: string | undefined, correlationId: string) {
@@ -83,6 +84,9 @@ export async function activateEnrollment(pool: Pool, identity: Identity, enrollm
             {taskId:task.rows[0].id,processId,stepId},correlationId);
         }
       }
+      const items=e.package_snapshot.items;
+      if (!Array.isArray(items)) throw new HttpError(409,'INVALID_PACKAGE_SNAPSHOT','Itens contratados ausentes');
+      await provisionActivation(db,identity,unitId,enrollmentId,Number(e.agreed_price_cents),items,correlationId);
       await db.query(`UPDATE enrollment SET status='ACTIVE',activated_at=now() WHERE id=$1`,[enrollmentId]);
       await record(db,identity,unitId,'enrollment.activated','enrollment',enrollmentId,
         {enrollmentId,processId,workflowVersionId},correlationId);

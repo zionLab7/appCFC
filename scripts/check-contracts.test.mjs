@@ -18,10 +18,22 @@ test('API and events contracts exist',async()=>{
   assert.match(api,/openapi: 3.1.0/);
   assert.match(api,/\/api\/v1\/students:/);
   assert.match(api,/\/api\/v1\/tasks:/);
+  assert.match(api,/\/api\/v1\/enrollments\/\{enrollmentId\}\/credits:/);
+  assert.match(api,/\/api\/v1\/enrollments\/\{enrollmentId\}\/finance:/);
+  assert.match(api,/\/api\/v1\/payments:/);
+  assert.match(api,/\/api\/v1\/resources:/);
+  assert.match(api,/\/api\/v1\/lessons:/);
   const event=JSON.parse(await readFile(resolve(root,'packages/contracts/events/envelope.schema.json'),'utf8'));
   assert.equal(event.$schema,'https://json-schema.org/draft/2020-12/schema');
   for(const name of ['task.created.v1','task.closed.v1']) {
     const schema=JSON.parse(await readFile(resolve(root,`packages/contracts/events/${name}.schema.json`),'utf8'));
     assert.deepEqual(schema.required,['taskId','processId','stepId']);
+  }
+  for(const name of ['credit.granted.v1','credit.reserved.v1','credit.released.v1','credit.consumed.v1',
+    'receivable.created.v1','payment.received.v1','payment.refunded.v1','resource.created.v1',
+    'resource.blocked.v1','lesson.booked.v1','lesson.cancelled.v1','lesson.completed.v1']) {
+    const schema=JSON.parse(await readFile(resolve(root,`packages/contracts/events/${name}.schema.json`),'utf8'));
+    assert.equal(schema.type,'object');
+    assert.ok(schema.required.length>=2);
   }
 });

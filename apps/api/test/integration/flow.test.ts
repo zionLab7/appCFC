@@ -7,6 +7,8 @@ import { createStudent,getStudentTimeline } from '../../src/students.js';
 import { activateEnrollment,createEnrollment,getEnrollment } from '../../src/enrollments.js';
 import { getProcess,transitionProcess } from '../../src/processes.js';
 import { listTasks } from '../../src/tasks.js';
+import { getCredits,getFinance,receivePayment,refundPayment } from '../../src/finance.js';
+import { blockResource,bookLesson,cancelLesson,completeLesson,createResource,listResources,listStudentLessons } from '../../src/scheduling.js';
 
 const url=process.env.GP_CFC_TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith('_test')) throw new Error('Use a disposable _test database');
@@ -25,6 +27,10 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
       ($1,'student.read'),($1,'student.write'),($1,'catalog.read'),($1,'catalog.write'),($1,'catalog.publish'),
       ($1,'enrollment.read'),($1,'enrollment.write'),($1,'process.read'),($1,'process.transition')`,[role]);
     await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'task.read')`,[role]);
+    await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES
+      ($1,'credit.read'),($1,'finance.read'),($1,'payment.receive'),($1,'payment.refund')`,[role]);
+    await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES
+      ($1,'resource.read'),($1,'resource.write'),($1,'lesson.read'),($1,'lesson.book'),($1,'lesson.cancel'),($1,'lesson.complete')`,[role]);
     await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org,unit,user,role]);
     const wf=randomUUID(),wfVersion=randomUUID();
     await pool.query(`INSERT INTO workflow_definition(id,organization_id,code,service_type) VALUES($1,$2,'DEMO','TEST_SERVICE')`,[wf,org]);
@@ -67,6 +73,77 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
       activateEnrollment(pool,identity,draft.id,{unitId:unit,demoActivationConfirmed:true},activateKey,corr())
     ]);
     assert.deepEqual(first,repeated);
+    const wallets=await getCredits(pool,identity,draft.id,unit);
+    assert.deepEqual(wallets.data.map((w:{itemType:string;balance:number;held:number;available:number})=>
+      [w.itemType,w.balance,w.held,w.available]),[['LESSON',3,0,3]]);
+    const finances=await getFinance(pool,identity,draft.id,unit);
+    assert.equal(finances.data.length,1);
+    assert.equal(finances.data[0].amountCents,1200);
+    assert.equal(finances.data[0].paidCents,0);
+    const installmentId=finances.data[0].installmentId;
+    const paymentKey=key();
+    const paymentInput={unitId:unit,installmentId,amountCents:500,method:'PIX',externalReference:`synthetic-${org}`};
+    const paid=await receivePayment(pool,identity,paymentInput,paymentKey,corr());
+    assert.deepEqual(await receivePayment(pool,identity,paymentInput,paymentKey,corr()),paid);
+    assert.equal((await getFinance(pool,identity,draft.id,unit)).data[0].status,'PARTIALLY_PAID');
+    await assert.rejects(receivePayment(pool,identity,{...paymentInput,amountCents:701,externalReference:`excess-${org}`},key(),corr()),
+      {code:'INSTALLMENT_OVERPAID'});
+    const competing=await Promise.allSettled([0,1].map(index=>receivePayment(pool,identity,
+      {...paymentInput,amountCents:700,externalReference:`race-${index}-${org}`},key(),corr())));
+    assert.equal(competing.filter(x=>x.status==='fulfilled').length,1);
+    assert.equal(competing.filter(x=>x.status==='rejected').length,1);
+    assert.equal((await getFinance(pool,identity,draft.id,unit)).data[0].status,'PAID');
+    assert.equal((await getFinance(pool,identity,draft.id,unit)).data[0].paidCents,1200);
+    const refundKey=key(),refundInput={unitId:unit,amountCents:200,reason:'Ajuste sintético'};
+    const refund=await refundPayment(pool,identity,paid.id,refundInput,refundKey,corr());
+    assert.deepEqual(await refundPayment(pool,identity,paid.id,refundInput,refundKey,corr()),refund);
+    await assert.rejects(refundPayment(pool,identity,paid.id,{...refundInput,amountCents:301},key(),corr()),
+      {code:'PAYMENT_OVERREFUNDED'});
+    assert.equal((await getFinance(pool,identity,draft.id,unit)).data[0].paidCents,1000);
+    assert.equal((await getFinance(pool,identity,draft.id,unit)).data[0].status,'PARTIALLY_PAID');
+    await receivePayment(pool,identity,{...paymentInput,amountCents:200,externalReference:`after-refund-${org}`},key(),corr());
+    assert.equal((await getFinance(pool,identity,draft.id,unit)).data[0].status,'PAID');
+    const balances=await pool.query(`SELECT je.source_type,sum(jl.debit_cents)::bigint AS debit,
+      sum(jl.credit_cents)::bigint AS credit FROM journal_entry je JOIN journal_line jl ON jl.entry_id=je.id
+      WHERE je.organization_id=$1 GROUP BY je.source_type`,[org]);
+    assert.deepEqual(balances.rows.map((r:{source_type:string;debit:string;credit:string})=>[r.source_type,r.debit,r.credit]).sort(),
+      [['PAYMENT','1400','1400'],['PAYMENT_REFUND','200','200'],['RECEIVABLE','1200','1200']]);
+    const availability=Array.from({length:7},(_,weekday)=>({weekday,startsAt:'08:00',endsAt:'18:00'}));
+    const instructor=await createResource(pool,identity,{unitId:unit,kind:'INSTRUCTOR',name:'Instrutor Sintético',category:'B',availability},key(),corr());
+    const vehicle=await createResource(pool,identity,{unitId:unit,kind:'VEHICLE',name:'Veículo Sintético',category:'B',availability},key(),corr());
+    assert.equal((await listResources(pool,identity,unit)).data.length,2);
+    const lessonDate=new Date(Date.now()+7*24*60*60_000).toISOString().slice(0,10);
+    const lessonInput={unitId:unit,studentId:student.id,processId:first.processId,walletId:wallets.data[0].id,
+      category:'B',startsAt:lessonDate+'T15:00:00.000Z',endsAt:lessonDate+'T16:00:00.000Z',
+      instructorId:instructor.id,vehicleId:vehicle.id};
+    const bookings=await Promise.allSettled([0,1].map(()=>bookLesson(pool,identity,lessonInput,key(),corr())));
+    assert.equal(bookings.filter(x=>x.status==='fulfilled').length,1);
+    assert.equal(bookings.filter(x=>x.status==='rejected').length,1);
+    const lesson=(bookings.find(x=>x.status==='fulfilled') as PromiseFulfilledResult<Awaited<ReturnType<typeof bookLesson>>>).value;
+    assert.equal((await getCredits(pool,identity,draft.id,unit)).data[0].held,1);
+    assert.equal((await listStudentLessons(pool,identity,student.id,unit)).data[0].id,lesson.id);
+    await assert.rejects(blockResource(pool,identity,vehicle.id,
+      {unitId:unit,startsAt:lessonInput.startsAt,endsAt:lessonInput.endsAt,reason:'Bloqueio sintético'},key(),corr()),
+      {code:'RESOURCE_BOOKED'});
+    const cancelKey=key();
+    const cancelled=await cancelLesson(pool,identity,lesson.id,{unitId:unit,reason:'Reagendamento sintético'},cancelKey,corr());
+    assert.deepEqual(await cancelLesson(pool,identity,lesson.id,{unitId:unit,reason:'Reagendamento sintético'},cancelKey,corr()),cancelled);
+    assert.equal((await getCredits(pool,identity,draft.id,unit)).data[0].available,3);
+    await blockResource(pool,identity,vehicle.id,
+      {unitId:unit,startsAt:lessonInput.startsAt,endsAt:lessonInput.endsAt,reason:'Manutenção sintética'},key(),corr());
+    await assert.rejects(bookLesson(pool,identity,lessonInput,key(),corr()),{code:'RESOURCE_BLOCKED'});
+    const secondLessonInput={...lessonInput,startsAt:lessonDate+'T16:00:00.000Z',endsAt:lessonDate+'T17:00:00.000Z'};
+    const secondLessonKey=key();
+    const completedLesson=await bookLesson(pool,identity,secondLessonInput,secondLessonKey,corr());
+    assert.deepEqual(await bookLesson(pool,identity,secondLessonInput,secondLessonKey,corr()),completedLesson);
+    const completeKey=key();
+    const completed=await completeLesson(pool,identity,completedLesson.id,
+      {unitId:unit,demoAttendanceConfirmed:true},completeKey,corr());
+    assert.deepEqual(await completeLesson(pool,identity,completedLesson.id,
+      {unitId:unit,demoAttendanceConfirmed:true},completeKey,corr()),completed);
+    const afterLesson=await getCredits(pool,identity,draft.id,unit);
+    assert.deepEqual([afterLesson.data[0].available,afterLesson.data[0].held,afterLesson.data[0].consumed],[2,0,1]);
+    assert.equal((await listStudentLessons(pool,identity,student.id,unit)).data[0].status,'COMPLETED');
     const process=await getProcess(pool,identity,first.processId);
     assert.deepEqual(process.steps.map((x:{status:string})=>x.status),['READY','NOT_STARTED']);
     assert.equal(process.tasks.length,1);
@@ -104,8 +181,21 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const earlier=await getStudentTimeline(pool,identity,student.id,new URLSearchParams({limit:'2',cursor:timeline.nextCursor!}));
     assert.equal(earlier.data.some((x:{id:string})=>x.id===timeline.data[0].id),false);
     const allEvents=(await getStudentTimeline(pool,identity,student.id,new URLSearchParams({limit:'100'}))).data;
-    for(const action of ['task.created','task.closed','process.step.transitioned','enrollment.activated'])
+    for(const action of ['task.created','task.closed','process.step.transitioned','enrollment.activated',
+      'credit.reserved','credit.released','credit.consumed','lesson.booked','lesson.cancelled',
+      'lesson.completed','payment.refunded'])
       assert.equal(allEvents.some((x:{action:string})=>x.action===action),true);
+    const reader=randomUUID(),readerRole=randomUUID();
+    await pool.query(`INSERT INTO app_user(id,email,display_name) VALUES($1,$2,'Leitor sintético')`,
+      [reader,`${reader}@example.invalid`]);
+    await pool.query(`INSERT INTO role(id,organization_id,code,name) VALUES($1,$2,'READER','Leitor')`,[readerRole,org]);
+    await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'student.read')`,[readerRole]);
+    await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id)
+      VALUES($1,$2,$3,$4)`,[org,unit,reader,readerRole]);
+    const readerTimeline=(await getStudentTimeline(pool,{organizationId:org,userId:reader},student.id,
+      new URLSearchParams({limit:'100'}))).data;
+    assert.equal(readerTimeline.some((x:{action:string})=>['payment.received','payment.refunded','credit.granted',
+      'lesson.booked','lesson.completed'].includes(x.action)),false);
     const allTasks=await listTasks(pool,identity,new URLSearchParams({unitId:unit,view:'all',limit:'1'}));
     assert.equal(allTasks.hasMore,true);
     const nextTasks=await listTasks(pool,identity,new URLSearchParams({unitId:unit,view:'all',limit:'1',cursor:allTasks.nextCursor!}));
@@ -134,6 +224,8 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     await assert.rejects(activateEnrollment(pool,identity,orphan.id,{unitId:unit,demoActivationConfirmed:true},key(),corr()),{code:'WORKFLOW_NOT_CONFIGURED'});
     const rolled=await pool.query(`SELECT e.status,count(p.id) AS processes FROM enrollment e LEFT JOIN process p ON p.enrollment_id=e.id WHERE e.id=$1 GROUP BY e.id`,[orphan.id]);
     assert.equal(rolled.rows[0].status,'DRAFT'); assert.equal(Number(rolled.rows[0].processes),0);
+    assert.equal(Number((await pool.query(`SELECT count(*) AS n FROM credit_wallet WHERE enrollment_id=$1`,[orphan.id])).rows[0].n),0);
+    assert.equal(Number((await pool.query(`SELECT count(*) AS n FROM receivable WHERE enrollment_id=$1`,[orphan.id])).rows[0].n),0);
     const secondUser=randomUUID();
     await pool.query(`INSERT INTO app_user(id,email,display_name) VALUES($1,$2,'Outro operador')`,[secondUser,`${secondUser}@example.invalid`]);
     await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org,otherUnit,secondUser,role]);
@@ -154,6 +246,11 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const enrollmentOther=await createEnrollment(pool,secondIdentity,
       {unitId:otherUnit,studentId:studentOther.id,packageVersionId:pkgOther.versionId,agreedPriceCents:1200},key(),corr());
     const activeOther=await activateEnrollment(pool,secondIdentity,enrollmentOther.id,{unitId:otherUnit,demoActivationConfirmed:true},key(),corr());
+    await assert.rejects(getCredits(pool,identity,enrollmentOther.id,otherUnit),{code:'ACCESS_DENIED'});
+    await assert.rejects(listStudentLessons(pool,identity,studentOther.id,otherUnit),{code:'ACCESS_DENIED'});
+    await assert.rejects(getFinance(pool,identity,enrollmentOther.id,otherUnit),{code:'ACCESS_DENIED'});
+    await assert.rejects(receivePayment(pool,identity,{unitId:unit,installmentId:(await getFinance(pool,secondIdentity,enrollmentOther.id,otherUnit)).data[0].installmentId,
+      amountCents:100,method:'CASH'},key(),corr()),{code:'INSTALLMENT_NOT_FOUND'});
     await assert.rejects(listTasks(pool,identity,new URLSearchParams({unitId:otherUnit})),{code:'ACCESS_DENIED'});
     assert.equal((await listTasks(pool,secondIdentity,new URLSearchParams({unitId:otherUnit}))).data.length,1);
     await assert.rejects(getEnrollment(pool,identity,enrollmentOther.id),{code:'ENROLLMENT_NOT_FOUND'});

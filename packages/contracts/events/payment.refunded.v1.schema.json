@@ -1,0 +1,13 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://gp-cfc.local/schemas/events/payment.refunded.v1.json",
+  "type":"object","additionalProperties":false,
+  "required":["refundId","paymentId","amountCents","reason","allocationId"],
+  "properties":{
+    "refundId":{"type":"string","format":"uuid"},
+    "paymentId":{"type":"string","format":"uuid"},
+    "amountCents":{"type":"integer","minimum":1},
+    "reason":{"type":"string","minLength":2},
+    "allocationId":{"type":"string","format":"uuid"}
+  }
+}
