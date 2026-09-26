@@ -1,7 +1,7 @@
 {
   "name": "gp-cfc",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "engines": {
     "node": ">=24"
@@ -14,6 +14,7 @@
     "db:migrate": "node --env-file=.env scripts/migrate.mjs",
     "db:seed": "node --env-file=.env scripts/seed.mjs",
     "dev:api": "node --env-file=.env --import tsx --watch apps/api/src/main.ts",
+    "dev:worker": "node --env-file=.env --import tsx apps/worker/src/outbox-dispatcher.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --test packages/domain/test/*.test.mjs scripts/check-contracts.test.mjs scripts/check-web.test.mjs && node --import tsx --test apps/api/test/*.test.ts",
     "test:integration": "NODE_ENV=test node --import tsx --test apps/api/test/integration/*.test.ts",

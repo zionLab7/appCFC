@@ -12,6 +12,7 @@
 | resource.read/write | ✓ | leitura | — | — | leitura | ✓ | — |
 | lesson.book | ✓ | ✓ | — | — | — | ✓ | — |
 | lesson.read/cancel/complete | ✓ | autorizada | — | — | aula própria | ✓ | — |
+| report.read | ✓ | — | — | leitura restrita | — | ✓ | — |
 | payment.receive | ✓ | autorizada | — | ✓ | — | — | — |
 | payment.refund | ✓ + razão | — | — | ✓ + aprovação | — | — | — |
 | automation.execute | ✓ | autorizada | — | — | — | autorizada | job próprio |

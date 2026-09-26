@@ -9,6 +9,7 @@ import { getProcess,transitionProcess } from '../../src/processes.js';
 import { listTasks } from '../../src/tasks.js';
 import { getCredits,getFinance,receivePayment,refundPayment } from '../../src/finance.js';
 import { blockResource,bookLesson,cancelLesson,completeLesson,createResource,listResources,listStudentLessons } from '../../src/scheduling.js';
+import { getOperationsReport } from '../../src/reports.js';
 
 const url=process.env.GP_CFC_TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith('_test')) throw new Error('Use a disposable _test database');
@@ -31,6 +32,7 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
       ($1,'credit.read'),($1,'finance.read'),($1,'payment.receive'),($1,'payment.refund')`,[role]);
     await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES
       ($1,'resource.read'),($1,'resource.write'),($1,'lesson.read'),($1,'lesson.book'),($1,'lesson.cancel'),($1,'lesson.complete')`,[role]);
+    await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'report.read')`,[role]);
     await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org,unit,user,role]);
     const wf=randomUUID(),wfVersion=randomUUID();
     await pool.query(`INSERT INTO workflow_definition(id,organization_id,code,service_type) VALUES($1,$2,'DEMO','TEST_SERVICE')`,[wf,org]);
@@ -144,6 +146,11 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const afterLesson=await getCredits(pool,identity,draft.id,unit);
     assert.deepEqual([afterLesson.data[0].available,afterLesson.data[0].held,afterLesson.data[0].consumed],[2,0,1]);
     assert.equal((await listStudentLessons(pool,identity,student.id,unit)).data[0].status,'COMPLETED');
+    const report=await getOperationsReport(pool,identity,unit);
+    assert.equal(report.students,1);
+    assert.deepEqual(report.finance,{billedCents:1200,paidCents:1200,outstandingCents:0});
+    assert.equal(report.lessons.find((x:{status:string})=>x.status==='COMPLETED').total,1);
+    assert.equal(report.lessons.find((x:{status:string})=>x.status==='CANCELLED_BY_CFC').total,1);
     const process=await getProcess(pool,identity,first.processId);
     assert.deepEqual(process.steps.map((x:{status:string})=>x.status),['READY','NOT_STARTED']);
     assert.equal(process.tasks.length,1);
@@ -247,6 +254,8 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
       {unitId:otherUnit,studentId:studentOther.id,packageVersionId:pkgOther.versionId,agreedPriceCents:1200},key(),corr());
     const activeOther=await activateEnrollment(pool,secondIdentity,enrollmentOther.id,{unitId:otherUnit,demoActivationConfirmed:true},key(),corr());
     await assert.rejects(getCredits(pool,identity,enrollmentOther.id,otherUnit),{code:'ACCESS_DENIED'});
+    await assert.rejects(getOperationsReport(pool,identity,otherUnit),{code:'ACCESS_DENIED'});
+    assert.equal((await getOperationsReport(pool,secondIdentity,otherUnit)).students,1);
     await assert.rejects(listStudentLessons(pool,identity,studentOther.id,otherUnit),{code:'ACCESS_DENIED'});
     await assert.rejects(getFinance(pool,identity,enrollmentOther.id,otherUnit),{code:'ACCESS_DENIED'});
     await assert.rejects(receivePayment(pool,identity,{unitId:unit,installmentId:(await getFinance(pool,secondIdentity,enrollmentOther.id,otherUnit)).data[0].installmentId,

@@ -40,7 +40,7 @@
     .toolbar label { min-width: 180px; }
     input, select { width: 100%; background: #fff; color: #173247; border: 1px solid #cad9df; border-radius: 9px; padding: 10px 11px; }
     input::placeholder { color: #8ba0aa; }
-    .tabs { display: flex; gap: 3px; border-bottom: 1px solid #dbe5e9; margin-bottom: 22px; }
+    .tabs { display: flex; gap: 3px; border-bottom: 1px solid #dbe5e9; margin-bottom: 22px; overflow-x: auto; white-space: nowrap; }
     .tabs button { border-radius: 0; background: transparent; color: #617987; padding: 12px 20px; border-bottom: 3px solid transparent; font-weight: 700; }
     .tabs button:hover { color: #173247; background: #eef3f5; }
     .tabs button.active { color: #08776e; border-bottom-color: #1c9d90; }
@@ -120,6 +120,10 @@
     .weekday-grid { display: flex; flex-wrap: wrap; gap: 10px; }
     .weekday-grid label { display: flex; align-items: center; gap: 5px; }
     .weekday-grid input { width: auto; }
+    .report-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
+    .metric { border: 1px solid #dfebed; border-radius: 12px; padding: 17px; background: #fff; }
+    .metric span { display: block; color: #647e8b; font-size: .8rem; }
+    .metric strong { display: block; font-size: 1.3rem; margin-top: 7px; }
     .pill.overdue { background: #fff0e6; color: #a14e24; }
     .stack { display: grid; gap: 15px; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -137,7 +141,7 @@
     #login p { color: #68818e; font-size: .9rem; line-height: 1.5; }
     #login button { margin-top: 8px; }
     @media (max-width: 900px) { .student-layout, .agenda-grid { grid-template-columns: 1fr; } .page-head { align-items: start; } }
-    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } }
+    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } .report-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } }
   </style>
 </head>
 <body>
@@ -158,7 +162,7 @@
         <div><span class="eyebrow">Operação</span><h1 id="viewTitle">Alunos</h1><p id="viewDescription">Encontre um aluno e acompanhe a matrícula em um só lugar.</p></div>
         <div class="toolbar"><label>Unidade<select id="unit"><option value="00000000-0000-4000-8000-000000000011">Ponte Rasa</option><option value="00000000-0000-4000-8000-000000000012">Penha</option><option value="00000000-0000-4000-8000-000000000013">Mooca</option></select></label><button id="refresh" class="secondary">Atualizar</button></div>
       </div>
-      <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="students" class="active" aria-current="page">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="agenda">Agenda</button><button type="button" data-view="catalog">Catálogo</button></nav>
+      <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="students" class="active" aria-current="page">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="agenda">Agenda</button><button type="button" data-view="catalog">Catálogo</button><button type="button" data-view="reports">Relatórios</button></nav>
       <div id="notice" role="status" class="notice hidden"></div>
       <section id="studentView" class="student-layout">
         <aside class="card card-pad">
@@ -185,6 +189,10 @@
       <section id="catalogView" class="hidden">
         <div class="card card-pad"><div class="catalog-head"><div><h2>Pacotes e versões</h2><p>Consulte o catálogo da unidade e publique rascunhos conferidos.</p></div><button id="newPackage" type="button">+ Novo pacote</button></div><div id="catalog"></div></div>
       </section>
+      <section id="reportView" class="hidden"><div id="reportKpis" class="report-kpis"></div><div class="agenda-grid">
+        <div class="card card-pad"><div class="catalog-head"><div><h2>Alunos por etapa</h2><p>Etapas abertas de processos ativos.</p></div></div><div id="reportSteps"></div></div>
+        <div class="card card-pad"><div class="catalog-head"><div><h2>Aulas e processos</h2><p>Contagem por estado na unidade.</p></div></div><div id="reportActivity"></div></div>
+      </div></section>
     </section>
   </main>
   <dialog id="studentDialog" aria-labelledby="studentDialogTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="studentDialogTitle">Cadastrar aluno</h2><p>Use somente dados fictícios neste ambiente.</p></div><button type="button" class="ghost small" data-close="studentDialog" aria-label="Fechar">✕</button></div><form id="studentForm" class="stack"><label>Nome completo<input name="fullName" required minlength="2" maxlength="200" autocomplete="off"></label><label>Telefone fictício (opcional)<input name="phone" autocomplete="off" placeholder="(11) 00000-0000"></label><p id="studentDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="studentDialog">Cancelar</button><button type="submit">Cadastrar aluno</button></div></form></div></dialog>
@@ -254,13 +262,33 @@
     }
     function setView(view) {
       activeView = view;
-      $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('agendaView').classList.toggle('hidden', view !== 'agenda'); $('catalogView').classList.toggle('hidden', view !== 'catalog');
-      $('viewTitle').textContent = view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : view === 'agenda' ? 'Agenda' : 'Catálogo';
-      $('viewDescription').textContent = view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : view === 'agenda' ? 'Veja aulas, instrutores e veículos da unidade.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
+      $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('agendaView').classList.toggle('hidden', view !== 'agenda'); $('catalogView').classList.toggle('hidden', view !== 'catalog'); $('reportView').classList.toggle('hidden', view !== 'reports');
+      $('viewTitle').textContent = view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : view === 'agenda' ? 'Agenda' : view === 'reports' ? 'Relatórios' : 'Catálogo';
+      $('viewDescription').textContent = view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : view === 'agenda' ? 'Veja aulas, instrutores e veículos da unidade.' : view === 'reports' ? 'Acompanhe alunos, aulas e valores da unidade.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
       for (const button of document.querySelectorAll('[data-view]')) { const active = button.dataset.view === view; button.classList.toggle('active', active); if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); }
       clearNotice();
       if (view === 'tasks') void loadTasks();
       if (view === 'agenda') void loadAgenda();
+      if (view === 'reports') void loadReport();
+    }
+    async function loadReport() {
+      const requestedUnit=unit(); $('reportKpis').textContent='Carregando relatório…'; $('reportSteps').replaceChildren(); $('reportActivity').replaceChildren();
+      try { const report=await api('/reports/operations?unitId='+requestedUnit); if (unit()!==requestedUnit) return;
+        const kpis=$('reportKpis'); kpis.replaceChildren();
+        for (const [label,value] of [['Alunos',report.students],['Aulas',report.lessons.reduce((n,item)=>n+item.total,0)],
+          ['Recebido',money(report.finance.paidCents)],['A receber',money(report.finance.outstandingCents)]]) {
+          const metric=node('div',undefined,'metric');metric.append(node('span',label),node('strong',value));kpis.append(metric);
+        }
+        const steps=$('reportSteps');steps.replaceChildren();
+        if (!report.steps.length) steps.append(node('p','Nenhuma etapa aberta em processo ativo.','minor-empty'));
+        for (const step of report.steps) {const row=node('div',undefined,'task-row');row.append(node('strong',step.label+' · '+(statusNames[step.status]||step.status)),node('span',step.total,'count'));steps.append(row);}
+        const activity=$('reportActivity');activity.replaceChildren();
+        for (const [title,items] of [['Processos',report.processes],['Aulas',report.lessons]]) {
+          activity.append(node('h3',title,'catalog-group'));
+          if (!items.length) activity.append(node('p','Sem registros.','minor-empty'));
+          for (const item of items) {const row=node('div',undefined,'task-row');row.append(node('strong',statusNames[item.status]||item.status),node('span',item.total,'count'));activity.append(row);}
+        }
+      } catch(error){if(unit()===requestedUnit){$('reportKpis').textContent=errorText(error);notice(errorText(error),'error');}}
     }
     async function loadAgenda() {
       const requestedUnit = unit(); $('agendaLessons').textContent = 'Carregando aulas…'; $('agendaResources').textContent = 'Carregando recursos…';
@@ -503,8 +531,8 @@
     $('newStudent').onclick = () => { $('studentDialogStatus').classList.add('hidden'); $('studentDialog').showModal(); };
     $('newPackage').onclick = () => { $('catalogDialogStatus').classList.add('hidden'); $('catalogDialog').showModal(); };
     $('newResource').onclick = () => { $('resourceDialogStatus').classList.add('hidden'); $('resourceDialog').showModal(); };
-    $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
-    $('unit').onchange = async () => { selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : [])]); };
+    $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
+    $('unit').onchange = async () => { selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); };
     $('searchForm').onsubmit = async event => { event.preventDefault(); searchQuery = String(new FormData(event.currentTarget).get('query') || '').trim(); await loadStudents(); };
     $('clearSearch').onclick = async () => { $('searchForm').reset(); searchQuery = ''; await loadStudents(); };
     $('studentForm').onsubmit = async event => { event.preventDefault(); const form = event.currentTarget, data = new FormData(form); try { const phone = String(data.get('phone') || '').trim(); const student = await api('/students', { method: 'POST', body: { unitId: unit(), fullName: data.get('fullName'), ...(phone ? { phone } : {}) } }); form.reset(); $('studentDialog').close(); searchQuery = ''; $('searchForm').reset(); notice('Aluno cadastrado.', 'success'); await loadStudents(); await selectStudent(student.id); } catch (error) { const target = $('studentDialogStatus'); target.textContent = errorText(error); target.classList.remove('hidden'); } };

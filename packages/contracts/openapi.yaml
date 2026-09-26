@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GP CFC API
-  version: 0.6.0
+  version: 0.7.0
   description: Rotas marcadas implemented funcionam na API local; demais rotas são alvo de produto.
 servers:
   - url: http://localhost:3000
@@ -108,6 +108,13 @@ paths:
         '200': { description: Tarefas visíveis em ordem de prazo, content: { application/json: { schema: { $ref: '#/components/schemas/TaskPage' } } } }
         '400': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+  /api/v1/reports/operations:
+    get:
+      operationId: getOperationsReport
+      x-implementation-status: implemented
+      description: Totais da unidade calculados de alunos, processos, aulas, recebíveis, alocações e estornos.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Relatório operacional da unidade }, '403': { $ref: '#/components/responses/Problem' } }
   /api/v1/catalog/packages:
     get:
       operationId: listCatalogPackages

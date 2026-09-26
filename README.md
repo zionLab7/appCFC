@@ -1,4 +1,4 @@
-# GP CFC — Desenvolvimento v0.6
+# GP CFC — Desenvolvimento v0.7
 
 Continuação do Technical Design & Implementation Pack v0.1, derivada da **Especificação GP CFC v0.1**. Código e modelo são novos; o InforCFC serviu apenas para levantamento de necessidades. Estado: **fundação de desenvolvimento**, não produto pronto nem migração homologada.
 
@@ -7,9 +7,10 @@ Continuação do Technical Design & Implementation Pack v0.1, derivada da **Espe
 - Ambiente local PostgreSQL 16, Redis 7, Keycloak de desenvolvimento e S3Mock para testes de armazenamento via Docker Compose. PostgreSQL usa a porta local `55432` para não conflitar com instalações locais.
 - Migrations SQL controladas por versão (controle em `schema_migrations`) e dados fictícios de desenvolvimento.
 - API TypeScript com health/meta, cadastro, busca e linha do tempo do aluno, catálogo versionado por unidade, matrícula, workflow, fila de tarefas, créditos, recebível e pagamentos manuais sintéticos com estorno, instrutores/veículos e reserva/cancelamento/conclusão sintética de aula. Mutations usam token OIDC, permissões por unidade, auditoria e idempotência.
-- Interface local em `/app` com login Keycloak PKCE, áreas de alunos, tarefas, agenda e catálogo. O detalhe da matrícula mostra créditos, parcela, pagamentos e estornos de demonstração.
+- Interface local em `/app` com login Keycloak PKCE, áreas de alunos, tarefas, agenda, catálogo e relatórios operacionais por unidade. O detalhe da matrícula mostra créditos, parcela, pagamentos e estornos de demonstração.
+- Dispatcher opcional da outbox para webhook HTTPS com assinatura HMAC, lease, retry exponencial e ID estável; consumidores devem deduplicar por `eventId`.
 - Contratos OpenAPI e JSON Schema, exemplos de workflow, modelo de dados, regras e backlog de implementação.
-- Testes de domínio e integração PostgreSQL para isolamento, concorrência de matrícula, workflow, pagamento e reserva de aula, snapshot de pacote e rollback.
+- Testes de domínio e integração PostgreSQL para isolamento, concorrência de matrícula, workflow, pagamento e reserva de aula, snapshot de pacote, rollback, totais de relatório e entrega da outbox.
 
 O repositório Git local usa a branch `main`, associada ao repositório [zionLab7/appCFC](https://github.com/zionLab7/appCFC). O GitHub indicado é público; o dossiê `GP_CFC_CONTEXT/` e o arquivo `.env` ficam fora do versionamento.
 
@@ -55,7 +56,7 @@ DATABASE_URL=postgres://gpcfc:gpcfc_dev_only@127.0.0.1:55432/gpcfc_test node scr
 GP_CFC_TEST_DATABASE_URL=postgres://gpcfc:gpcfc_dev_only@127.0.0.1:55432/gpcfc_test npm run test:integration
 ```
 
-O Compose não inicia a API automaticamente. O comando `dev:api` executa o backend de desenvolvimento; desktop, mobile e worker seguem como pontos de extensão. Ativação, recebimento/estorno, reserva/cancelamento/conclusão de aula usam confirmações sintéticas e só estão habilitados em `NODE_ENV=development` ou `test` até existir contrato assinado e regras operacionais validadas. A ativação cria um recebível com uma parcela fictícia vencendo em 30 dias e créditos para cada item do pacote; matrículas ativadas antes da v0.6 não são alteradas automaticamente. Nenhum gateway, portal oficial, worker de navegação, sync SQLite, pagamento ou reserva real está ligado à API nesta versão. S3Mock é apenas para desenvolvimento e ainda não há API de documentos.
+O Compose não inicia a API automaticamente. O comando `dev:api` executa o backend de desenvolvimento; desktop e mobile seguem como pontos de extensão. O dispatcher em `apps/worker` só inicia com `DATABASE_URL`, `OUTBOX_WEBHOOK_URL` e `OUTBOX_WEBHOOK_SECRET`; não há receptor externo configurado por padrão. Ativação, recebimento/estorno, reserva/cancelamento/conclusão de aula usam confirmações sintéticas e só estão habilitados em `NODE_ENV=development` ou `test` até existir contrato assinado e regras operacionais validadas. A ativação cria um recebível com uma parcela fictícia vencendo em 30 dias e créditos para cada item do pacote; matrículas ativadas antes da v0.6 não são alteradas automaticamente. Nenhum gateway, portal oficial, worker de navegação, sync SQLite, pagamento ou reserva real está ligado à API nesta versão. S3Mock é apenas para desenvolvimento e ainda não há API de documentos.
 
 Os registros dos comandos e resultados efetivamente observados estão em `docs/product/validation-2026-09-25.md` e `docs/product/validation-2026-09-26.md`.
 

@@ -55,6 +55,10 @@ await api('/lessons/'+completedLesson.id+'/complete','POST',{unitId:unit,demoAtt
 const afterCompletion=await api('/enrollments/'+enrollment.id+'/credits?unitId='+unit);
 assert.equal(afterCompletion.data[0].available,1);
 assert.equal(afterCompletion.data[0].consumed,1);
+const report=await api('/reports/operations?unitId='+unit);
+assert.ok(report.students>=1);
+assert.ok(report.finance.billedCents>=12345);
+assert.ok(report.finance.paidCents>=12345);
 const finance=await api('/enrollments/'+enrollment.id+'/finance?unitId='+unit);
 assert.equal(finance.data[0].amountCents,12345);
 const payment=await api('/payments','POST',{unitId:unit,installmentId:finance.data[0].installmentId,amountCents:12345,
@@ -92,4 +96,4 @@ assert.ok(timeline.data.some(item=>item.action==='lesson.booked'));
 assert.ok(timeline.data.some(item=>item.action==='lesson.cancelled'));
 assert.ok(timeline.data.some(item=>item.action==='lesson.completed'));
 process.stdout.write(JSON.stringify({health:'ready',studentId:student.id,enrollmentId:enrollment.id,
-  processId:activated.processId,completedStep:readyStep.code,nextReady:after.steps.filter(step=>step.status==='READY').map(step=>step.code),search:'ok',timeline:'ok',tasks:'ok',credits:'consumed',finance:'paid',agenda:'booked-cancelled-completed'})+'\n');
+  processId:activated.processId,completedStep:readyStep.code,nextReady:after.steps.filter(step=>step.status==='READY').map(step=>step.code),search:'ok',timeline:'ok',tasks:'ok',credits:'consumed',finance:'paid',agenda:'booked-cancelled-completed',report:'ok'})+'\n');

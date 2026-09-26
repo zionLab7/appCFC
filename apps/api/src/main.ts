@@ -10,6 +10,7 @@ import { getProcess, transitionProcess } from './processes.js';
 import { listTasks } from './tasks.js';
 import { getCredits, getFinance, receivePayment, refundPayment } from './finance.js';
 import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, listLessons, listResources, listStudentLessons } from './scheduling.js';
+import { getOperationsReport } from './reports.js';
 
 const port = Number(process.env.PORT ?? 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be a valid TCP port');
@@ -47,7 +48,7 @@ const server = createServer(async (req,res) => {
     if (req.method==='GET' && url.pathname==='/health/live') return reply(res,200,{status:'ok'},correlationId);
     if (req.method==='GET' && url.pathname==='/health/ready') {
       try {
-        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='016_lesson_completion.sql'`);
+        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='017_operational_reports.sql'`);
         if (!migration.rowCount) throw new Error('Schema is not current');
         return reply(res,200,{status:'ready'},correlationId);
       } catch { return reply(res,503,{code:'DATABASE_UNAVAILABLE',message:'Banco ou migrations indisponíveis',correlationId},correlationId); }
@@ -67,6 +68,8 @@ const server = createServer(async (req,res) => {
       return reply(res,200,await searchStudents(pool,identity,await jsonBody(req)),correlationId);
     if (url.pathname==='/api/v1/tasks' && req.method==='GET')
       return reply(res,200,await listTasks(pool,identity,url.searchParams),correlationId);
+    if (url.pathname==='/api/v1/reports/operations' && req.method==='GET')
+      return reply(res,200,await getOperationsReport(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
     if (url.pathname==='/api/v1/resources' && req.method==='GET')
       return reply(res,200,await listResources(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
     if (url.pathname==='/api/v1/resources' && req.method==='POST')

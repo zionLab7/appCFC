@@ -25,3 +25,7 @@ As tarefas geradas por processos anteriores à v0.5 continuam existentes, mas s�
 | `/app` no navegador | Login, matrícula com créditos e financeiro, aba Agenda, lista de aulas/recursos e diálogo de novo recurso observados |
 
 O vencimento de 30 dias, presença confirmada e políticas de cancelamento/estorno são hipóteses **somente de demonstração**. Operações de ativação, pagamento/estorno e aula são recusadas fora de `development`/`test`. Matrículas ativadas em versões anteriores não recebem backfill automático. O CI remoto da v0.6 será registrado depois da publicação.
+
+## Continuação v0.7 no mesmo dia
+
+A v0.6 [passou no CI remoto](https://github.com/zionLab7/appCFC/actions/runs/36244137353). A migration 017, o seed e a migration 018 foram aplicados no banco de desenvolvimento e em `gpcfc_fresh_test`. O relatório por unidade passou em teste integrado, smoke HTTP com token e inspeção visual da quinta aba. O dispatcher passou em teste integrado de falha, retry, lease concorrente e ID estável; a assinatura HMAC foi verificada contra um receptor HTTP local. `npm run typecheck` e `npm test` passaram após essa mudança. Nenhum webhook externo foi configurado ou chamado.

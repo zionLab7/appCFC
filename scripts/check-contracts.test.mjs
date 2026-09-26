@@ -23,6 +23,7 @@ test('API and events contracts exist',async()=>{
   assert.match(api,/\/api\/v1\/payments:/);
   assert.match(api,/\/api\/v1\/resources:/);
   assert.match(api,/\/api\/v1\/lessons:/);
+  assert.match(api,/\/api\/v1\/reports\/operations:/);
   const event=JSON.parse(await readFile(resolve(root,'packages/contracts/events/envelope.schema.json'),'utf8'));
   assert.equal(event.$schema,'https://json-schema.org/draft/2020-12/schema');
   for(const name of ['task.created.v1','task.closed.v1']) {
