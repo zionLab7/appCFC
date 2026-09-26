@@ -6,6 +6,7 @@ import { createPackage,createDraftVersion,listCatalog,publishVersion,updateDraft
 import { createStudent,getStudentTimeline } from '../../src/students.js';
 import { activateEnrollment,createEnrollment,getEnrollment } from '../../src/enrollments.js';
 import { getProcess,transitionProcess } from '../../src/processes.js';
+import { listTasks } from '../../src/tasks.js';
 
 const url=process.env.GP_CFC_TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith('_test')) throw new Error('Use a disposable _test database');
@@ -23,6 +24,7 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES
       ($1,'student.read'),($1,'student.write'),($1,'catalog.read'),($1,'catalog.write'),($1,'catalog.publish'),
       ($1,'enrollment.read'),($1,'enrollment.write'),($1,'process.read'),($1,'process.transition')`,[role]);
+    await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'task.read')`,[role]);
     await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org,unit,user,role]);
     const wf=randomUUID(),wfVersion=randomUUID();
     await pool.query(`INSERT INTO workflow_definition(id,organization_id,code,service_type) VALUES($1,$2,'DEMO','TEST_SERVICE')`,[wf,org]);
@@ -68,6 +70,12 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const process=await getProcess(pool,identity,first.processId);
     assert.deepEqual(process.steps.map((x:{status:string})=>x.status),['READY','NOT_STARTED']);
     assert.equal(process.tasks.length,1);
+    const firstTask=(await listTasks(pool,identity,new URLSearchParams({unitId:unit}))).data[0];
+    assert.equal(firstTask.processId,first.processId);
+    assert.equal(firstTask.studentName,'Aluno Sintético');
+    assert.equal((await listTasks(pool,identity,new URLSearchParams({unitId:unit,owner:'mine'}))).data.length,1);
+    await pool.query(`UPDATE task SET due_at=now()-interval '1 hour' WHERE id=$1`,[firstTask.id]);
+    assert.deepEqual((await listTasks(pool,identity,new URLSearchParams({unitId:unit,view:'overdue'}))).data.map((x:{id:string})=>x.id),[firstTask.id]);
     await assert.rejects(pool.query(`UPDATE process SET unit_id=$1 WHERE id=$2`,[otherUnit,first.processId]),/process links/);
     const [step1,step2]=process.steps;
     await assert.rejects(pool.query(`UPDATE task SET unit_id=$1 WHERE process_step_id=$2`,[otherUnit,step1.id]),/task step/);
@@ -82,6 +90,8 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const advanced=await getProcess(pool,identity,first.processId);
     assert.deepEqual(advanced.steps.map((x:{status:string})=>x.status),['COMPLETED','READY']);
     assert.equal(advanced.tasks.length,2);
+    assert.equal((await listTasks(pool,identity,new URLSearchParams({unitId:unit,view:'overdue'}))).data.length,0);
+    assert.equal((await listTasks(pool,identity,new URLSearchParams({unitId:unit}))).data.length,1);
     const fact=await pool.query(`SELECT count(*) AS n FROM outbox_event WHERE aggregate_id=$1 AND type='process.step.transitioned.v1'`,[first.processId]);
     assert.equal(Number(fact.rows[0].n),1);
     const trace=await pool.query(`SELECT actor_user_id,correlation_id FROM outbox_event
@@ -91,9 +101,31 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     assert.equal((await getProcess(pool,identity,first.processId)).status,'COMPLETED');
     const timeline=await getStudentTimeline(pool,identity,student.id,new URLSearchParams({limit:'2'}));
     assert.equal(timeline.hasMore,true);
-    assert.deepEqual(timeline.data.map((x:{action:string})=>x.action),['process.step.transitioned','process.step.transitioned']);
     const earlier=await getStudentTimeline(pool,identity,student.id,new URLSearchParams({limit:'2',cursor:timeline.nextCursor!}));
-    assert.equal(earlier.data.some((x:{action:string})=>x.action==='enrollment.activated'),true);
+    assert.equal(earlier.data.some((x:{id:string})=>x.id===timeline.data[0].id),false);
+    const allEvents=(await getStudentTimeline(pool,identity,student.id,new URLSearchParams({limit:'100'}))).data;
+    for(const action of ['task.created','task.closed','process.step.transitioned','enrollment.activated'])
+      assert.equal(allEvents.some((x:{action:string})=>x.action===action),true);
+    const allTasks=await listTasks(pool,identity,new URLSearchParams({unitId:unit,view:'all',limit:'1'}));
+    assert.equal(allTasks.hasMore,true);
+    const nextTasks=await listTasks(pool,identity,new URLSearchParams({unitId:unit,view:'all',limit:'1',cursor:allTasks.nextCursor!}));
+    assert.notEqual(allTasks.data[0].id,nextTasks.data[0].id);
+    const taskFacts=await pool.query(`SELECT type,count(*)::int AS n FROM outbox_event
+      WHERE organization_id=$1 AND aggregate_type='task' GROUP BY type`,[org]);
+    assert.equal(taskFacts.rows.find((x:{type:string})=>x.type==='task.created.v1').n,2);
+    assert.equal(taskFacts.rows.find((x:{type:string})=>x.type==='task.closed.v1').n,2);
+    const assignee=randomUUID();
+    await pool.query(`INSERT INTO app_user(id,email,display_name) VALUES($1,$2,'Responsável sintético')`,[assignee,`${assignee}@example.invalid`]);
+    await pool.query(`INSERT INTO user_unit_membership(organization_id,unit_id,user_id,role_id) VALUES($1,$2,$3,$4)`,[org,unit,assignee,role]);
+    await pool.query(`UPDATE task SET assigned_user_id=$1 WHERE id=$2`,[assignee,firstTask.id]);
+    assert.equal((await listTasks(pool,identity,new URLSearchParams({unitId:unit,view:'all'}))).data.some((x:{id:string})=>x.id===firstTask.id),false);
+    assert.equal((await listTasks(pool,{organizationId:org,userId:assignee},new URLSearchParams({unitId:unit,view:'all',owner:'mine'}))).data.some((x:{id:string})=>x.id===firstTask.id),true);
+    await pool.query(`INSERT INTO task(organization_id,unit_id,kind,assigned_role) VALUES
+      ($1,$2,'MANUAL','SECRETARY'),($1,$2,'MANUAL','SECRETARY')`,[org,unit]);
+    const undated=await listTasks(pool,identity,new URLSearchParams({unitId:unit,limit:'1'}));
+    assert.equal(undated.hasMore,true);
+    const undatedNext=await listTasks(pool,identity,new URLSearchParams({unitId:unit,limit:'1',cursor:undated.nextCursor!}));
+    assert.notEqual(undated.data[0].id,undatedNext.data[0].id);
     const other=await createPackage(pool,identity,{unitId:unit,code:`O_${org.replaceAll('-','').slice(0,16)}`,
       productName:'Outro produto',serviceType:'NO_WORKFLOW',packageName:'Outro pacote',priceCents:500,
       items:[{itemType:'LESSON',quantity:1}]},key(),corr());
@@ -122,6 +154,8 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const enrollmentOther=await createEnrollment(pool,secondIdentity,
       {unitId:otherUnit,studentId:studentOther.id,packageVersionId:pkgOther.versionId,agreedPriceCents:1200},key(),corr());
     const activeOther=await activateEnrollment(pool,secondIdentity,enrollmentOther.id,{unitId:otherUnit,demoActivationConfirmed:true},key(),corr());
+    await assert.rejects(listTasks(pool,identity,new URLSearchParams({unitId:otherUnit})),{code:'ACCESS_DENIED'});
+    assert.equal((await listTasks(pool,secondIdentity,new URLSearchParams({unitId:otherUnit}))).data.length,1);
     await assert.rejects(getEnrollment(pool,identity,enrollmentOther.id),{code:'ENROLLMENT_NOT_FOUND'});
     await assert.rejects(getProcess(pool,identity,activeOther.processId),{code:'PROCESS_NOT_FOUND'});
     const org2=randomUUID(),unit3=randomUUID(),role3=randomUUID();
@@ -137,6 +171,7 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     await assert.rejects(createEnrollment(pool,otherTenant,
       {unitId:unit3,studentId:student.id,packageVersionId:pkg.versionId,agreedPriceCents:1200},key(),corr()),{code:'STUDENT_NOT_FOUND'});
     await pool.query(`UPDATE user_unit_membership SET active=false WHERE unit_id=$1 AND user_id=$2`,[unit,user]);
+    await assert.rejects(listTasks(pool,identity,new URLSearchParams({unitId:unit})),{code:'ACCESS_DENIED'});
     await assert.rejects(getEnrollment(pool,identity,draft.id),{code:'ENROLLMENT_NOT_FOUND'});
     await assert.rejects(getProcess(pool,identity,first.processId),{code:'PROCESS_NOT_FOUND'});
   } finally { await pool.end(); }

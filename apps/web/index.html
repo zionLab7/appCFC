@@ -105,6 +105,13 @@
     .catalog-row .price { font-weight: 750; font-size: .9rem; white-space: nowrap; }
     .catalog-row .row-actions { min-width: 85px; }
     .catalog-group { margin: 22px 0 8px; color: #607b89; font-size: .76rem; text-transform: uppercase; letter-spacing: .09em; }
+    .task-filters { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 17px; }
+    .task-filters label { min-width: 180px; }
+    .task-row { display: flex; justify-content: space-between; gap: 18px; align-items: center; border-top: 1px solid #e8eff1; padding: 16px 0; }
+    .task-row strong { display: block; font-size: .9rem; margin-bottom: 4px; }
+    .task-row .subtle { display: block; }
+    .task-row .row-actions { align-items: center; }
+    .pill.overdue { background: #fff0e6; color: #a14e24; }
     .stack { display: grid; gap: 15px; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     dialog { width: min(510px, calc(100vw - 30px)); border: 0; border-radius: 16px; padding: 0; box-shadow: 0 24px 80px #0a273d55; color: #173247; }
@@ -121,7 +128,7 @@
     #login p { color: #68818e; font-size: .9rem; line-height: 1.5; }
     #login button { margin-top: 8px; }
     @media (max-width: 900px) { .student-layout { grid-template-columns: 1fr; } .page-head { align-items: start; } }
-    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } }
+    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } }
   </style>
 </head>
 <body>
@@ -142,7 +149,7 @@
         <div><span class="eyebrow">Operação</span><h1 id="viewTitle">Alunos</h1><p id="viewDescription">Encontre um aluno e acompanhe a matrícula em um só lugar.</p></div>
         <div class="toolbar"><label>Unidade<select id="unit"><option value="00000000-0000-4000-8000-000000000011">Ponte Rasa</option><option value="00000000-0000-4000-8000-000000000012">Penha</option><option value="00000000-0000-4000-8000-000000000013">Mooca</option></select></label><button id="refresh" class="secondary">Atualizar</button></div>
       </div>
-      <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="students" class="active" aria-current="page">Alunos</button><button type="button" data-view="catalog">Catálogo</button></nav>
+      <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="students" class="active" aria-current="page">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="catalog">Catálogo</button></nav>
       <div id="notice" role="status" class="notice hidden"></div>
       <section id="studentView" class="student-layout">
         <aside class="card card-pad">
@@ -154,6 +161,12 @@
         <div class="detail-column">
           <section class="card"><div id="detail" class="empty-state"><span class="empty-icon" aria-hidden="true">◎</span><strong>Selecione um aluno</strong><p>As matrículas e a linha do tempo aparecem aqui.</p></div></section>
           <section id="processCard" class="card hidden"><div class="detail-content"><div class="card-head"><div><h2>Processo e tarefas</h2><p>Etapas do atendimento.</p></div></div><div id="process"></div></div></section>
+        </div>
+      </section>
+      <section id="taskView" class="hidden">
+        <div class="card card-pad"><div class="catalog-head"><div><h2>Fila de tarefas</h2><p>Acompanhe pendências e prazos da unidade selecionada.</p></div><span id="taskCount" class="count">0</span></div>
+          <div class="task-filters"><label>Exibir<select id="taskFilter"><option value="open">Abertas</option><option value="overdue">Vencidas</option><option value="all">Todas</option></select></label><label>Responsável<select id="taskOwner"><option value="unit">Fila da unidade</option><option value="mine">Minha fila</option></select></label></div>
+          <div id="tasks" aria-live="polite"></div>
         </div>
       </section>
       <section id="catalogView" class="hidden">
@@ -171,9 +184,9 @@
     const unit = () => $('unit').value;
     const money = cents => (Number(cents) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const date = value => new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-    const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente' };
-    const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada' };
-    let token = '', students = [], catalog = [], selectedStudent = null, studentCursor = null, searchQuery = '', activeView = 'students';
+    const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente', OPEN: 'Aberta', DONE: 'Concluída' };
+    const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída' };
+    let token = '', students = [], catalog = [], tasks = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'students';
     function notice(message, kind = 'info') { const target = $('notice'); target.textContent = message; target.className = 'notice ' + kind; }
     function clearNotice() { $('notice').className = 'notice hidden'; }
     function errorText(error) { if (error?.status === 403) return 'Sem permissão nesta unidade.'; if (error?.status === 401) return 'Sessão expirada. Entre novamente.'; return error?.message || 'Falha inesperada.'; }
@@ -204,11 +217,37 @@
     }
     function setView(view) {
       activeView = view;
-      $('studentView').classList.toggle('hidden', view !== 'students'); $('catalogView').classList.toggle('hidden', view !== 'catalog');
-      $('viewTitle').textContent = view === 'students' ? 'Alunos' : 'Catálogo';
-      $('viewDescription').textContent = view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
+      $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('catalogView').classList.toggle('hidden', view !== 'catalog');
+      $('viewTitle').textContent = view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : 'Catálogo';
+      $('viewDescription').textContent = view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
       for (const button of document.querySelectorAll('[data-view]')) { const active = button.dataset.view === view; button.classList.toggle('active', active); if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); }
       clearNotice();
+      if (view === 'tasks') void loadTasks();
+    }
+    async function loadTasks(cursor = null) {
+      const requestedUnit = unit(), view = $('taskFilter').value, owner = $('taskOwner').value;
+      if (!cursor) $('tasks').textContent = 'Carregando tarefas…';
+      const params = new URLSearchParams({unitId:requestedUnit,view,owner,limit:'30'});
+      if (cursor) params.set('cursor',cursor);
+      try { const page = await api('/tasks?' + params);
+        if (unit() !== requestedUnit || $('taskFilter').value !== view || $('taskOwner').value !== owner) return;
+        tasks = cursor ? [...tasks,...page.data] : page.data; taskCursor = page.nextCursor || null; renderTasks();
+      } catch (error) { if (unit() !== requestedUnit || $('taskFilter').value !== view || $('taskOwner').value !== owner) return; if (!cursor) { tasks = []; taskCursor = null; $('taskCount').textContent = '0'; $('tasks').textContent = errorText(error); } else notice(errorText(error), 'error'); }
+    }
+    function renderTasks() {
+      const target = $('tasks'); target.replaceChildren(); $('taskCount').textContent = tasks.length + (taskCursor ? '+' : '');
+      if (!tasks.length) { target.append(node('p', 'Nenhuma tarefa para este filtro.', 'minor-empty')); return; }
+      for (const task of tasks) {
+        const row = node('div', undefined, 'task-row'), info = node('div'), actions = node('div', undefined, 'row-actions');
+        info.append(node('strong', task.stepLabel || task.kind));
+        info.append(node('span', task.studentName || 'Sem aluno vinculado', 'subtle'));
+        info.append(node('span', task.dueAt ? 'Prazo: ' + date(task.dueAt) : 'Sem prazo definido', 'subtle'));
+        const overdue = task.status === 'OPEN' && task.dueAt && new Date(task.dueAt).getTime() < Date.now();
+        actions.append(node('span', overdue ? 'Vencida' : statusNames[task.status] || task.status, 'pill ' + (overdue ? 'overdue' : task.status.toLowerCase())));
+        if (task.studentId && task.processId) { const open = node('button', 'Abrir processo', 'secondary small'); open.onclick = async () => { setView('students'); await selectStudent(task.studentId); await showProcess(task.processId); }; actions.append(open); }
+        row.append(info,actions); target.append(row);
+      }
+      if (taskCursor) { const more = node('button', 'Ver mais tarefas', 'secondary list-more'); more.onclick = async () => { more.disabled = true; await loadTasks(taskCursor); if (more.isConnected) more.disabled = false; }; target.append(more); }
     }
     async function studentRequest(cursor = null) {
       if (searchQuery) return api('/students/search', { method: 'POST', body: { unitId: unit(), query: searchQuery, limit: 30, ...(cursor ? { cursor } : {}) } });
@@ -296,7 +335,7 @@
         target.append(node('p', 'Estado: ' + (statusNames[process.status] || process.status) + ' · Workflow v' + process.workflowVersion, 'subtle'));
         for (const [index, step] of process.steps.entries()) {
           const row = node('div', undefined, 'step ' + step.status.toLowerCase()), info = node('div');
-          info.append(node('strong', step.label)); if (step.prerequisites.length) info.append(node('p', 'Depende de: ' + step.prerequisites.join(', ')));
+          info.append(node('strong', step.label)); if (step.prerequisites.length) info.append(node('p', 'Depende de: ' + step.prerequisites.map(code => process.steps.find(candidate => candidate.code === code)?.label || code).join(', ')));
           const task = process.tasks.find(item => item.stepId === step.id && item.status === 'OPEN'); if (task) info.append(node('p', 'Tarefa aberta' + (task.dueAt ? ' · até ' + date(task.dueAt) : '')));
           const actions = node('div', undefined, 'row-actions'); actions.append(node('span', statusNames[step.status] || step.status, 'pill ' + step.status.toLowerCase()));
           if (['READY', 'IN_PROGRESS'].includes(step.status)) { const complete = node('button', 'Concluir', 'small'); complete.onclick = async () => { try { await api('/processes/' + id + '/transitions', { method: 'POST', body: { unitId: unit(), stepId: step.id, expectedStatus: step.status, toStatus: 'COMPLETED' } }); notice('Etapa concluída e próxima tarefa atualizada.', 'success'); await selectStudent(selectedStudent); await showProcess(id); } catch (error) { notice(errorText(error), 'error'); } }; actions.append(complete); }
@@ -307,11 +346,12 @@
     $('loginButton').onclick = login;
     $('logout').onclick = () => { token = ''; $('workspace').classList.add('hidden'); $('login').classList.remove('hidden'); $('logout').classList.add('hidden'); };
     for (const button of document.querySelectorAll('[data-view]')) button.onclick = () => setView(button.dataset.view);
+    $('taskFilter').onchange = () => { void loadTasks(); }; $('taskOwner').onchange = () => { void loadTasks(); };
     for (const button of document.querySelectorAll('[data-close]')) button.onclick = () => $(button.dataset.close).close();
     $('newStudent').onclick = () => { $('studentDialogStatus').classList.add('hidden'); $('studentDialog').showModal(); };
     $('newPackage').onclick = () => { $('catalogDialogStatus').classList.add('hidden'); $('catalogDialog').showModal(); };
-    $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog()]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
-    $('unit').onchange = async () => { selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog()]); };
+    $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
+    $('unit').onchange = async () => { selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'tasks' ? [loadTasks()] : [])]); };
     $('searchForm').onsubmit = async event => { event.preventDefault(); searchQuery = String(new FormData(event.currentTarget).get('query') || '').trim(); await loadStudents(); };
     $('clearSearch').onclick = async () => { $('searchForm').reset(); searchQuery = ''; await loadStudents(); };
     $('studentForm').onsubmit = async event => { event.preventDefault(); const form = event.currentTarget, data = new FormData(form); try { const phone = String(data.get('phone') || '').trim(); const student = await api('/students', { method: 'POST', body: { unitId: unit(), fullName: data.get('fullName'), ...(phone ? { phone } : {}) } }); form.reset(); $('studentDialog').close(); searchQuery = ''; $('searchForm').reset(); notice('Aluno cadastrado.', 'success'); await loadStudents(); await selectStudent(student.id); } catch (error) { const target = $('studentDialogStatus'); target.textContent = errorText(error); target.classList.remove('hidden'); } };

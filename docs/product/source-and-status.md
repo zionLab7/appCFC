@@ -31,3 +31,7 @@ A migration 011 vincula novos pacotes à unidade e preserva pacotes anteriores c
 ## Git local e revisão de interface — 25/09/2026
 
 Foi criado o repositório Git local na branch `main`, sem remoto. `.env`, dependências instaladas e o dossiê de referências `GP_CFC_CONTEXT/` foram excluídos do versionamento. A interface passou a separar atendimento de catálogo; cadastro de aluno e pacote fica em diálogos, a busca e o aluno selecionado são o foco da tela, e a lista e a linha do tempo oferecem paginação. Uma checagem automatizada valida a sintaxe do JavaScript inline e os IDs HTML usados pelo controlador. O fluxo foi conferido no navegador com dados fictícios. A decisão de ambiente permanece local: publicação remota, execução de CI e staging ainda exigem infraestrutura da GP.
+
+## Continuação v0.5 — 26/09/2026
+
+A branch `main` local foi publicada em `zionLab7/appCFC`, repositório público indicado pelo usuário; `.env`, dependências e o dossiê histórico permanecem fora do Git. A migration 012 define `task.read` e índice da fila. `GET /tasks` consulta tarefas por unidade, vencimento e responsável com cursor; tarefas de etapa passam a gerar eventos e auditoria na abertura e no fechamento, na mesma transação do processo. A interface ganhou uma área de tarefas que abre o processo do aluno. Testes locais e integrados no banco `_test`, smoke autenticado e navegação visual passaram. Ainda não houve aceite dos critérios operacionais do MVP; CI remoto e staging devem ser verificados separadamente.

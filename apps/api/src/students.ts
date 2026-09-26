@@ -192,7 +192,10 @@ export async function getStudentTimeline(pool: Pool, identity: Identity, student
         OR (a.entity_type='enrollment' AND EXISTS (SELECT 1 FROM enrollment e
           WHERE e.id=a.entity_id AND e.organization_id=a.organization_id AND e.student_id=$2))
         OR (a.entity_type='process' AND EXISTS (SELECT 1 FROM process pr
-          WHERE pr.id=a.entity_id AND pr.organization_id=a.organization_id AND pr.student_id=$2)))
+          WHERE pr.id=a.entity_id AND pr.organization_id=a.organization_id AND pr.student_id=$2))
+        OR (a.entity_type='task' AND EXISTS (SELECT 1 FROM task t JOIN process pr
+          ON pr.id=t.process_id AND pr.organization_id=t.organization_id
+          WHERE t.id=a.entity_id AND t.organization_id=a.organization_id AND pr.student_id=$2)))
       AND EXISTS (SELECT 1 FROM user_unit_membership m JOIN role_permission rp ON rp.role_id=m.role_id
         JOIN unit un ON un.id=m.unit_id AND un.organization_id=m.organization_id JOIN app_user u ON u.id=m.user_id
         WHERE m.organization_id=a.organization_id AND m.unit_id=a.unit_id AND m.user_id=$3

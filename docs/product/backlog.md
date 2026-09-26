@@ -1,6 +1,6 @@
 # Backlog inicial — 21 épicos
 
-**Progresso local em 25/09/2026:** ST-03/ST-07 foram confirmadas em PostgreSQL e a paginação foi corrigida; ST-04/ST-05/ST-06 têm implementação e integração sintética no banco `_test`, com API HTTP e primeira tela web. ST-01/ST-02/ST-08 foram parcialmente verificados no Mac com Compose/Keycloak; Git remoto, CI remoto, staging e controles operacionais seguem abertos. Contrato assinado, regras comerciais/regulatórias reais e metas p95 ainda não têm aceite. Os critérios abaixo continuam valendo para encerrar cada história.
+**Progresso em 26/09/2026:** ST-03/ST-07 foram confirmadas em PostgreSQL; ST-04/ST-05/ST-06 têm implementação e integração sintética no banco `_test`; E09 tem fila inicial de tarefas por unidade, responsável e prazo, com eventos e tela. ST-01/ST-02/ST-08 foram parcialmente verificados no Mac com Compose/Keycloak e o código está no GitHub indicado; CI remoto, staging e controles operacionais seguem abertos. Contrato assinado, regras comerciais/regulatórias reais e metas p95 ainda não têm aceite. Os critérios abaixo continuam valendo para encerrar cada história.
 
 Prioridade usa P0 = necessária ao piloto, P1 = após núcleo, P2 = expansão. Dependência indica o que deve estar aceito antes. Cada história tem critérios observáveis; a decomposição abaixo é ponto de partida, não promessa de todos os épicos implementados neste pack.
 

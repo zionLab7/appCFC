@@ -33,6 +33,8 @@ const pkg=await api('/catalog/packages','POST',{unitId:unit,code:'DEMO_'+randomU
 await api('/catalog/versions/'+pkg.versionId+'/publish','POST',{unitId:unit});
 const enrollment=await api('/enrollments','POST',{unitId:unit,studentId:student.id,packageVersionId:pkg.versionId,agreedPriceCents:12345});
 const activated=await api('/enrollments/'+enrollment.id+'/activate','POST',{unitId:unit,demoActivationConfirmed:true});
+const initialTasks=await api('/tasks?unitId='+unit+'&view=open');
+assert.ok(initialTasks.data.some(item=>item.processId===activated.processId));
 const processDetail=await api('/processes/'+activated.processId);
 assert.equal(processDetail.workflowVersion,2);
 const readyStep=processDetail.steps.find(step=>step.status==='READY');
@@ -42,9 +44,13 @@ await api('/processes/'+activated.processId+'/transitions','POST',
 const after=await api('/processes/'+activated.processId);
 assert.ok(after.steps.some(step=>step.status==='COMPLETED'));
 assert.ok(after.steps.some(step=>step.status==='READY'));
+const taskQueue=await api('/tasks?unitId='+unit+'&view=open');
+assert.ok(taskQueue.data.some(item=>item.processId===activated.processId&&item.stepLabel==='Conferir documentos'));
 const timeline=await api('/students/'+student.id+'/timeline');
 assert.ok(timeline.data.some(item=>item.action==='student.created'));
 assert.ok(timeline.data.some(item=>item.action==='enrollment.activated'));
 assert.ok(timeline.data.some(item=>item.action==='process.step.transitioned'));
+assert.ok(timeline.data.some(item=>item.action==='task.created'));
+assert.ok(timeline.data.some(item=>item.action==='task.closed'));
 process.stdout.write(JSON.stringify({health:'ready',studentId:student.id,enrollmentId:enrollment.id,
-  processId:activated.processId,completedStep:readyStep.code,nextReady:after.steps.filter(step=>step.status==='READY').map(step=>step.code),search:'ok',timeline:'ok'})+'\n');
+  processId:activated.processId,completedStep:readyStep.code,nextReady:after.steps.filter(step=>step.status==='READY').map(step=>step.code),search:'ok',timeline:'ok',tasks:'ok'})+'\n');

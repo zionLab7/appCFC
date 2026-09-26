@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GP CFC API
-  version: 0.4.0
+  version: 0.5.0
   description: Rotas marcadas implemented funcionam na API local; demais rotas são alvo de produto.
 servers:
   - url: http://localhost:3000
@@ -86,6 +86,22 @@ paths:
       x-implementation-status: implemented
       parameters: [ { $ref: '#/components/parameters/StudentId' }, { $ref: '#/components/parameters/OrganizationId' }, { name: cursor, in: query, schema: { type: string } }, { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 30 } } ]
       responses: { '200': { description: Eventos auditados do aluno e suas matrículas e processos visíveis, content: { application/json: { schema: { $ref: '#/components/schemas/StudentTimelinePage' } } } }, '404': { $ref: '#/components/responses/Problem' } }
+  /api/v1/tasks:
+    get:
+      operationId: listTasks
+      x-implementation-status: implemented
+      description: Fila por prazo da unidade, limitada pelo papel ou responsável do usuário. A permissão task.read inclui a identificação do aluno associado.
+      parameters:
+        - { $ref: '#/components/parameters/OrganizationId' }
+        - { $ref: '#/components/parameters/UnitQuery' }
+        - { name: view, in: query, schema: { type: string, enum: [open, overdue, all], default: open } }
+        - { name: owner, in: query, schema: { type: string, enum: [unit, mine], default: unit } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 30 } }
+      responses:
+        '200': { description: Tarefas visíveis em ordem de prazo, content: { application/json: { schema: { $ref: '#/components/schemas/TaskPage' } } } }
+        '400': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
   /api/v1/catalog/packages:
     get:
       operationId: listCatalogPackages
@@ -275,6 +291,31 @@ components:
               actorUserId: { type: [string, 'null'], format: uuid }
               details: { type: [object, 'null'] }
               occurredAt: { type: string, format: date-time }
+        hasMore: { type: boolean }
+        nextCursor: { type: string }
+    TaskPage:
+      type: object
+      required: [data,hasMore]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required: [id,unitId,kind,status,createdAt]
+            properties:
+              id: { type: string, format: uuid }
+              unitId: { type: string, format: uuid }
+              processId: { type: [string, 'null'], format: uuid }
+              studentId: { type: [string, 'null'], format: uuid }
+              studentName: { type: [string, 'null'] }
+              stepId: { type: [string, 'null'], format: uuid }
+              stepLabel: { type: [string, 'null'] }
+              kind: { type: string }
+              status: { type: string }
+              assignedRole: { type: [string, 'null'] }
+              assignedUserId: { type: [string, 'null'], format: uuid }
+              dueAt: { type: [string, 'null'], format: date-time }
+              createdAt: { type: string, format: date-time }
         hasMore: { type: boolean }
         nextCursor: { type: string }
     StudentDetail:

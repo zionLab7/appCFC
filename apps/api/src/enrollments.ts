@@ -75,9 +75,13 @@ export async function activateEnrollment(pool: Pool, identity: Identity, enrollm
         const stepId=randomUUID();
         await db.query(`INSERT INTO process_step(id,organization_id,process_id,definition_step_id,status)
           VALUES($1,$2,$3,$4,$5)`,[stepId,identity.organizationId,processId,step.id,ready?'READY':'NOT_STARTED']);
-        if (ready) await db.query(`INSERT INTO task(organization_id,unit_id,process_id,process_step_id,kind,assigned_role,due_at,context)
-          VALUES($1,$2,$3,$4,'PROCESS_STEP',$5,CASE WHEN $6::integer IS NULL THEN NULL ELSE now()+($6||' hours')::interval END,$7)`,
-          [identity.organizationId,unitId,processId,stepId,step.assigned_role,step.sla_hours,JSON.stringify({stepCode:step.code})]);
+        if (ready) {
+          const task=await db.query(`INSERT INTO task(organization_id,unit_id,process_id,process_step_id,kind,assigned_role,due_at,context)
+            VALUES($1,$2,$3,$4,'PROCESS_STEP',$5,CASE WHEN $6::integer IS NULL THEN NULL ELSE now()+($6||' hours')::interval END,$7)
+            RETURNING id`,[identity.organizationId,unitId,processId,stepId,step.assigned_role,step.sla_hours,JSON.stringify({stepCode:step.code})]);
+          await record(db,identity,unitId,'task.created','task',task.rows[0].id,
+            {taskId:task.rows[0].id,processId,stepId},correlationId);
+        }
       }
       await db.query(`UPDATE enrollment SET status='ACTIVE',activated_at=now() WHERE id=$1`,[enrollmentId]);
       await record(db,identity,unitId,'enrollment.activated','enrollment',enrollmentId,

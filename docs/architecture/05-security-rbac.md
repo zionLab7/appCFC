@@ -6,6 +6,7 @@
 | student.write | ✓ | ✓ | contato | — | — | limitada | — |
 | enrollment.write | ✓ | ✓ | proposta | — | — | — | — |
 | process.transition | ✓ | ✓ | — | — | aula própria | ✓ | — |
+| task.read | ✓ | ✓ | — | — | atribuída | ✓ | — |
 | lesson.book | ✓ | ✓ | — | — | — | ✓ | — |
 | payment.receive | ✓ | autorizada | — | ✓ | — | — | — |
 | payment.refund | ✓ + razão | — | — | ✓ + aprovação | — | — | — |
@@ -13,6 +14,8 @@
 | audit.read | ✓ | — | — | limitada | — | — | — |
 
 Matriz é modelo de produto; grant exato configurável por organização, unidade e papel. Verificar permissão em cada comando e limitar listas por unidades ativas do usuário; o mesmo usuário pode ter papéis diferentes na Ponte Rasa, Penha e Mooca. Para ações financeiras sensíveis, MFA e aprovação em separado são requisitos antes de operação.
+
+`task.read` permite ver a identificação do aluno ligada à tarefa. A fila limita resultados à unidade ativa; não gestores veem tarefas atribuídas a si ou ao próprio papel, e gestores podem consultar a fila da unidade. O filtro “minha fila” restringe a tarefas atribuídas diretamente ou ao papel do usuário. A leitura é sem mutação; abertura e fechamento transacionais de tarefas produzem auditoria e eventos junto com a transição de processo.
 
 `audit_event` registra actor, escopo, ação, entidade, correlação, razão e diffs redigidos quando possível. Ledger registra fatos financeiros; auditoria registra autoria. Leituras/exportações de dados sensíveis requerem eventos de segurança separados no Sprint de hardening. Não colocar CPF completo ou documentos em logs. Regras de retenção e solicitações LGPD precisam de definição jurídica antes do deploy real; preservar obrigações legais e rastreabilidade.
 

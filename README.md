@@ -1,4 +1,4 @@
-# GP CFC — Desenvolvimento v0.4
+# GP CFC — Desenvolvimento v0.5
 
 Continuação do Technical Design & Implementation Pack v0.1, derivada da **Especificação GP CFC v0.1**. Código e modelo são novos; o InforCFC serviu apenas para levantamento de necessidades. Estado: **fundação de desenvolvimento**, não produto pronto nem migração homologada.
 
@@ -6,12 +6,12 @@ Continuação do Technical Design & Implementation Pack v0.1, derivada da **Espe
 
 - Ambiente local PostgreSQL 16, Redis 7, Keycloak de desenvolvimento e S3Mock para testes de armazenamento via Docker Compose. PostgreSQL usa a porta local `55432` para não conflitar com instalações locais.
 - Migrations SQL controladas por versão (controle em `schema_migrations`) e dados fictícios de desenvolvimento.
-- API TypeScript com health/meta, cadastro, busca por nome/CPF/telefone e linha do tempo do aluno, catálogo versionado por unidade, matrícula, ativação e transições de processo com token OIDC, permissões por unidade, auditoria e idempotência.
-- Interface local em `/app` com login Keycloak PKCE, busca e Aluno 360 inicial, catálogo, matrícula e tarefas do processo.
+- API TypeScript com health/meta, cadastro, busca por nome/CPF/telefone e linha do tempo do aluno, catálogo versionado por unidade, matrícula, ativação, transições de processo e fila de tarefas por prazo/responsável com token OIDC, permissões por unidade, auditoria e idempotência.
+- Interface local em `/app` com login Keycloak PKCE, áreas de alunos, tarefas e catálogo, matrícula e acompanhamento do processo.
 - Contratos OpenAPI e JSON Schema, exemplos de workflow, modelo de dados, regras e backlog de implementação.
 - Testes de domínio e integração PostgreSQL para isolamento, concorrência, snapshot de pacote, rollback e workflow.
 
-O repositório Git local foi inicializado na branch `main`. Nenhum remoto foi associado; o dossiê `GP_CFC_CONTEXT/` e o arquivo `.env` ficam fora do versionamento. Configure um remoto privado escolhido pela GP antes de publicar código.
+O repositório Git local usa a branch `main`, associada ao repositório [zionLab7/appCFC](https://github.com/zionLab7/appCFC). O GitHub indicado é público; o dossiê `GP_CFC_CONTEXT/` e o arquivo `.env` ficam fora do versionamento.
 
 ## Requisitos e comandos
 
@@ -57,7 +57,7 @@ GP_CFC_TEST_DATABASE_URL=postgres://gpcfc:gpcfc_dev_only@127.0.0.1:55432/gpcfc_t
 
 O Compose não inicia a API automaticamente. O comando `dev:api` executa o backend de desenvolvimento; desktop, mobile e worker seguem como pontos de extensão. A ativação usa `demoActivationConfirmed` e só está habilitada em `NODE_ENV=development` ou `test` até existir contrato assinado e regras operacionais validadas. Nenhum gateway, portal oficial, worker de navegação, sync SQLite, pagamento ou reserva real está ligado à API nesta versão. S3Mock é apenas para desenvolvimento e ainda não há API de documentos.
 
-O registro dos comandos e resultados efetivamente observados está em `docs/product/validation-2026-09-25.md`.
+Os registros dos comandos e resultados efetivamente observados estão em `docs/product/validation-2026-09-25.md` e `docs/product/validation-2026-09-26.md`.
 
 ## Organização
 

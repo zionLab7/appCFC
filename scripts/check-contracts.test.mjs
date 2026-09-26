@@ -17,6 +17,11 @@ test('API and events contracts exist',async()=>{
   const api=await readFile(resolve(root,'packages/contracts/openapi.yaml'),'utf8');
   assert.match(api,/openapi: 3.1.0/);
   assert.match(api,/\/api\/v1\/students:/);
+  assert.match(api,/\/api\/v1\/tasks:/);
   const event=JSON.parse(await readFile(resolve(root,'packages/contracts/events/envelope.schema.json'),'utf8'));
   assert.equal(event.$schema,'https://json-schema.org/draft/2020-12/schema');
+  for(const name of ['task.created.v1','task.closed.v1']) {
+    const schema=JSON.parse(await readFile(resolve(root,`packages/contracts/events/${name}.schema.json`),'utf8'));
+    assert.deepEqual(schema.required,['taskId','processId','stepId']);
+  }
 });

@@ -7,6 +7,7 @@ import { createStudent, getStudent, getStudentTimeline, listStudents, searchStud
 import { createPackage, createDraftVersion, deleteDraft, listCatalog, publishVersion, updateDraft } from './catalog.js';
 import { activateEnrollment, createEnrollment, getEnrollment } from './enrollments.js';
 import { getProcess, transitionProcess } from './processes.js';
+import { listTasks } from './tasks.js';
 
 const port = Number(process.env.PORT ?? 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be a valid TCP port');
@@ -44,7 +45,7 @@ const server = createServer(async (req,res) => {
     if (req.method==='GET' && url.pathname==='/health/live') return reply(res,200,{status:'ok'},correlationId);
     if (req.method==='GET' && url.pathname==='/health/ready') {
       try {
-        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='011_catalog_scope_and_student_search.sql'`);
+        const migration = await pool.query(`SELECT 1 FROM schema_migrations WHERE filename='012_task_queue.sql'`);
         if (!migration.rowCount) throw new Error('Schema is not current');
         return reply(res,200,{status:'ready'},correlationId);
       } catch { return reply(res,503,{code:'DATABASE_UNAVAILABLE',message:'Banco ou migrations indisponíveis',correlationId},correlationId); }
@@ -62,6 +63,8 @@ const server = createServer(async (req,res) => {
     }
     if (url.pathname==='/api/v1/students/search' && req.method==='POST')
       return reply(res,200,await searchStudents(pool,identity,await jsonBody(req)),correlationId);
+    if (url.pathname==='/api/v1/tasks' && req.method==='GET')
+      return reply(res,200,await listTasks(pool,identity,url.searchParams),correlationId);
     const timeline = /^\/api\/v1\/students\/([^/]+)\/timeline$/.exec(url.pathname);
     if (timeline && req.method==='GET') return reply(res,200,await getStudentTimeline(pool,identity,timeline[1],url.searchParams),correlationId);
     const match = /^\/api\/v1\/students\/([^/]+)$/.exec(url.pathname);
