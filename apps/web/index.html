@@ -36,6 +36,9 @@
     h1 { font-size: clamp(1.7rem, 2.6vw, 2.2rem); letter-spacing: -.035em; margin-bottom: 5px; }
     .page-head p { color: #637b8a; margin-bottom: 0; font-size: .9rem; }
     .toolbar { display: flex; align-items: end; gap: 9px; }
+    .quick-search { display:flex; align-items:end; gap:10px; padding:13px 15px; margin:-3px 0 15px; background:#fff; border:1px solid #dfe9ec; border-radius:13px; }
+    .quick-search label { flex:1; }
+    .quick-search button { white-space:nowrap; }
     label { display: grid; gap: 6px; color: #476172; font-size: .77rem; font-weight: 700; }
     .toolbar label { min-width: 180px; }
     input, select { width: 100%; background: #fff; color: #173247; border: 1px solid #cad9df; border-radius: 9px; padding: 10px 11px; }
@@ -189,7 +192,7 @@
     .agenda-empty strong { color:#234858; font-size:1rem; }
     .agenda-empty p { max-width:360px; margin:0 0 5px; font-size:.86rem; line-height:1.5; }
     @media (max-width: 900px) { .student-layout, .agenda-grid, .home-columns { grid-template-columns: 1fr; } .page-head { align-items: start; } .agenda-hero { align-items:flex-start; flex-direction:column; } }
-    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; white-space:normal; overflow:visible; border:0; } .tabs button { padding:10px 5px; border:1px solid #dbe5e9; border-radius:9px; font-size:.8rem; } .tabs button.active { background:#e5f7f2; border-color:#35a796; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } .report-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .agenda-hero { padding:23px; } .agenda-actions { width:100%; } .agenda-actions button { flex:1 1 160px; } .agenda-switch { width:100%; overflow-x:auto; } .agenda-switch button { flex:1; white-space:nowrap; } .agenda-toolbar label { flex:1; } .agenda-item { grid-template-columns:72px 1fr; align-items:start; gap:10px; } .agenda-item .row-actions { grid-column:2; justify-content:start; } .slot-search { grid-template-columns: 1fr 1fr; } .slot-search button { grid-column: 1 / -1; } .slot-option { grid-template-columns: 1fr; gap: 3px; } }
+    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .quick-search { flex-wrap:wrap; } .quick-search label { flex:1 1 100%; } .quick-search button { width:100%; } .tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; white-space:normal; overflow:visible; border:0; } .tabs button { padding:10px 5px; border:1px solid #dbe5e9; border-radius:9px; font-size:.8rem; } .tabs button.active { background:#e5f7f2; border-color:#35a796; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } .report-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .agenda-hero { padding:23px; } .agenda-actions { width:100%; } .agenda-actions button { flex:1 1 160px; } .agenda-switch { width:100%; overflow-x:auto; } .agenda-switch button { flex:1; white-space:nowrap; } .agenda-toolbar label { flex:1; } .agenda-item { grid-template-columns:72px 1fr; align-items:start; gap:10px; } .agenda-item .row-actions { grid-column:2; justify-content:start; } .slot-search { grid-template-columns: 1fr 1fr; } .slot-search button { grid-column: 1 / -1; } .slot-option { grid-template-columns: 1fr; gap: 3px; } }
   </style>
 </head>
 <body>
@@ -210,13 +213,14 @@
         <div><span class="eyebrow">Operação</span><h1 id="viewTitle">Visão geral</h1><p id="viewDescription">Comece pelas pendências e pelos próximos atendimentos da unidade.</p></div>
         <div class="toolbar"><label>Unidade<select id="unit"><option value="">Carregando unidades…</option></select></label><button id="refresh" class="secondary">Atualizar</button></div>
       </div>
+      <form id="globalSearchForm" class="quick-search"><label>Busca rápida de aluno<input name="query" minlength="2" maxlength="100" required autocomplete="off" placeholder="Nome, CPF ou telefone nesta unidade"></label><button type="submit">Buscar aluno</button></form>
       <nav class="tabs" aria-label="Áreas da central"><button type="button" data-view="home" class="active" aria-current="page">Início</button><button type="button" data-view="students">Alunos</button><button type="button" data-view="tasks">Tarefas</button><button type="button" data-view="agenda">Agenda</button><button type="button" data-view="catalog">Catálogo</button><button type="button" data-view="reports">Relatórios</button></nav>
       <div id="notice" role="status" class="notice hidden"></div>
       <section id="homeView">
         <div class="home-hero"><h2>O que precisa acontecer hoje?</h2><p>Comece pelas tarefas ou marque o próximo horário. Este ambiente usa apenas dados fictícios.</p><div class="home-actions"><button type="button" id="homeBook">+ Marcar aula</button><button type="button" id="homeExam" class="secondary">+ Marcar exame</button><button type="button" data-open-view="tasks" class="secondary">Ver tarefas</button><button type="button" data-open-view="students" class="secondary">Abrir alunos</button></div></div>
         <div id="homeKpis" class="report-kpis" aria-live="polite"></div>
         <div class="home-columns"><div class="card card-pad"><div class="card-head"><div><h2>Tarefas abertas</h2><p>Próximas ações da equipe.</p></div><button type="button" data-open-view="tasks" class="small secondary">Abrir fila</button></div><div id="homeTasks" class="home-list"></div></div>
-          <div class="card card-pad"><div class="card-head"><div><h2>Aulas recentes e futuras</h2><p>Acompanhe reservas da unidade.</p></div><button type="button" data-open-view="agenda" class="small secondary">Abrir agenda</button></div><div id="homeLessons" class="home-list"></div></div></div>
+          <div class="card card-pad"><div class="card-head"><div><h2>Próximos compromissos</h2><p>Aulas e exames internos agendados.</p></div><button type="button" data-open-view="agenda" class="small secondary">Abrir agenda</button></div><div id="homeLessons" class="home-list"></div></div></div>
       </section>
       <section id="studentView" class="student-layout hidden">
         <aside class="card card-pad">
@@ -339,6 +343,7 @@
     }
     function setView(view) {
       activeView = view;
+      $('globalSearchForm').classList.toggle('hidden',view==='students');
       $('homeView').classList.toggle('hidden',view!=='home'); $('studentView').classList.toggle('hidden', view !== 'students'); $('taskView').classList.toggle('hidden', view !== 'tasks'); $('agendaView').classList.toggle('hidden', view !== 'agenda'); $('catalogView').classList.toggle('hidden', view !== 'catalog'); $('reportView').classList.toggle('hidden', view !== 'reports');
       $('viewTitle').textContent = view === 'home' ? 'Visão geral' : view === 'students' ? 'Alunos' : view === 'tasks' ? 'Tarefas' : view === 'agenda' ? 'Agenda' : view === 'reports' ? 'Relatórios' : 'Catálogo';
       $('viewDescription').textContent = view === 'home' ? 'Comece pelas pendências e pelos próximos atendimentos da unidade.' : view === 'students' ? 'Encontre um aluno e acompanhe a matrícula em um só lugar.' : view === 'tasks' ? 'Priorize as próximas ações e os prazos da equipe.' : view === 'agenda' ? 'Marque aulas e exames práticos e acompanhe a equipe da unidade.' : view === 'reports' ? 'Acompanhe alunos, aulas e valores da unidade.' : 'Gerencie pacotes de demonstração e suas versões por unidade.';
@@ -350,17 +355,19 @@
       if (view === 'reports') void loadReport();
     }
     async function loadHome() {
-      const requestedUnit=unit();$('homeKpis').textContent='Carregando indicadores…';$('homeTasks').textContent='Carregando tarefas…';$('homeLessons').textContent='Carregando aulas…';
+      const requestedUnit=unit();$('homeKpis').textContent='Carregando indicadores…';$('homeTasks').textContent='Carregando tarefas…';$('homeLessons').textContent='Carregando compromissos…';
       try {
-        const [reportResult,taskResult,lessonResult]=await Promise.allSettled([
+        const [reportResult,taskResult,lessonResult,examResult]=await Promise.allSettled([
           api('/reports/operations?unitId='+requestedUnit),
           api('/tasks?'+new URLSearchParams({unitId:requestedUnit,view:'open',owner:'unit',limit:'5'})),
-          api('/lessons?unitId='+requestedUnit)
+          api('/lessons?unitId='+requestedUnit),
+          api('/practical-exams?unitId='+requestedUnit)
         ]);
         if(unit()!==requestedUnit)return;
         const report=reportResult.status==='fulfilled'?reportResult.value:null;
         const taskPage=taskResult.status==='fulfilled'?taskResult.value:null;
         const lessonPage=lessonResult.status==='fulfilled'?lessonResult.value:null;
+        const examPage=examResult.status==='fulfilled'?examResult.value:null;
         const kpis=$('homeKpis');kpis.replaceChildren();
         for(const [label,value] of [['Alunos',report?.students??'—'],['Tarefas na fila',taskPage?taskPage.data.length+(taskPage.hasMore?'+':''):'—'],
           ['Aulas',report?report.lessons.reduce((n,item)=>n+item.total,0):'—'],['A receber',report?money(report.finance.outstandingCents):'—']]) {
@@ -375,11 +382,14 @@
           row.append(info,open);taskTarget.append(row);
         }
         const lessonTarget=$('homeLessons');lessonTarget.replaceChildren();
-        if(!lessonPage)lessonTarget.append(node('p','Agenda indisponível para este acesso.','minor-empty'));
-        else if(!lessonPage.data.length)lessonTarget.append(node('p','Nenhuma aula recente nesta unidade.','minor-empty'));
-        for(const lesson of (lessonPage?.data||[]).slice(0,5)){const row=node('div',undefined,'task-row'),info=node('div');
-          info.append(node('strong',lesson.studentName),node('span',date(lesson.startsAt)+' · '+(statusNames[lesson.status]||lesson.status),'subtle'));
-          const open=node('button','Abrir','small secondary');open.onclick=async()=>{setView('students');await selectStudent(lesson.studentId);};row.append(info,open);lessonTarget.append(row);
+        const upcoming=[...(lessonPage?.data||[]).filter(item=>['RESERVED','CONFIRMED','CHECKED_IN','IN_PROGRESS'].includes(item.status)).map(item=>({...item,kind:'Aula'})),
+          ...(examPage?.data||[]).filter(item=>item.status==='SCHEDULED').map(item=>({...item,kind:'Exame prático'}))]
+          .filter(item=>Date.parse(item.startsAt)>Date.now()).sort((a,b)=>Date.parse(a.startsAt)-Date.parse(b.startsAt)).slice(0,5);
+        if(!lessonPage&&!examPage)lessonTarget.append(node('p','Agenda indisponível para este acesso.','minor-empty'));
+        else if(!upcoming.length)lessonTarget.append(node('p','Nenhuma aula ou exame futuro nesta unidade.','minor-empty'));
+        for(const appointment of upcoming){const row=node('div',undefined,'task-row'),info=node('div');
+          info.append(node('strong',appointment.studentName),node('span',appointment.kind+' · '+date(appointment.startsAt),'subtle'));
+          const open=node('button','Abrir','small secondary');open.onclick=async()=>{setView('students');await selectStudent(appointment.studentId);};row.append(info,open);lessonTarget.append(row);
         }
       }catch(error){if(unit()===requestedUnit){$('homeKpis').textContent=errorText(error);$('homeTasks').textContent='';$('homeLessons').textContent='';notice(errorText(error),'error');}}
     }
@@ -832,9 +842,10 @@
     $('findLessonSlots').onclick=()=>{void findSuggestions('bookingForm','lessonSlots','findLessonSlots','LESSON');};
     $('findExamSlots').onclick=()=>{void findSuggestions('examForm','examSlots','findExamSlots','PRACTICAL_EXAM');};
     $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
-    $('unit').onchange = async () => { localStorage.setItem('gp-last-unit',unit()); selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); };
-    $('searchForm').onsubmit = async event => { event.preventDefault(); searchQuery = String(new FormData(event.currentTarget).get('query') || '').trim(); await loadStudents(); };
-    $('clearSearch').onclick = async () => { $('searchForm').reset(); searchQuery = ''; await loadStudents(); };
+    $('unit').onchange = async () => { localStorage.setItem('gp-last-unit',unit()); selectedStudent = null; searchQuery = ''; $('searchForm').reset();$('globalSearchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); };
+    $('globalSearchForm').onsubmit = async event => { event.preventDefault(); const query=String(new FormData(event.currentTarget).get('query')||'').trim(); if(query.length<2)return;searchQuery=query;$('searchForm').elements.namedItem('query').value=query;setView('students');await loadStudents();if(searchQuery===query&&students.length===1)await selectStudent(students[0].id); };
+    $('searchForm').onsubmit = async event => { event.preventDefault(); searchQuery = String(new FormData(event.currentTarget).get('query') || '').trim(); $('globalSearchForm').elements.namedItem('query').value=searchQuery; await loadStudents(); };
+    $('clearSearch').onclick = async () => { $('searchForm').reset(); $('globalSearchForm').reset();searchQuery = ''; await loadStudents(); };
     $('studentForm').onsubmit = async event => { event.preventDefault(); const form = event.currentTarget, data = new FormData(form); try { const phone = String(data.get('phone') || '').trim(); const student = await api('/students', { method: 'POST', body: { unitId: unit(), fullName: data.get('fullName'), ...(phone ? { phone } : {}) } }); form.reset(); $('studentDialog').close(); searchQuery = ''; $('searchForm').reset(); notice('Aluno cadastrado.', 'success'); await loadStudents(); await selectStudent(student.id); } catch (error) { const target = $('studentDialogStatus'); target.textContent = errorText(error); target.classList.remove('hidden'); } };
     $('catalogForm').onsubmit = async event => { event.preventDefault(); const form = event.currentTarget, data = new FormData(form); try { const price = Number(data.get('price')), quantity = Number(data.get('quantity')); await api('/catalog/packages', { method: 'POST', body: { unitId: unit(), code: data.get('code'), productName: data.get('productName'), serviceType: data.get('serviceType'), packageName: data.get('packageName'), priceCents: Math.round(price * 100), items: [{ itemType: 'LESSON_DEMO', quantity }] } }); form.reset(); $('catalogDialog').close(); notice('Pacote criado em rascunho.', 'success'); await loadCatalog(); } catch (error) { const target = $('catalogDialogStatus'); target.textContent = errorText(error); target.classList.remove('hidden'); } };
     $('resourceForm').onsubmit = async event => { event.preventDefault(); const form=event.currentTarget,data=new FormData(form); try {
