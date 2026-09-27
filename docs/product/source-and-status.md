@@ -47,3 +47,9 @@ O relatório operacional por unidade calcula alunos, processos e etapas abertas,
 ## Estado observado na v0.8 — 26/09/2026
 
 Migrations 019–020, API, contrato OpenAPI, eventos, RBAC, auditoria, testes e interface cobrem o fluxo básico de documentos solicitados/versionados/revisados. S3Mock real e token Keycloak foram usados num smoke sintético; teste integrado usa servidor S3 simulado e PostgreSQL `_test`. O vínculo de contrato é criado em `DRAFT`, sem assinatura. A restauração de backup local sintético passou; staging e critérios de operação real continuam abertos. A v0.7 passou no CI remoto; o resultado remoto da v0.8 deve ser registrado após a publicação.
+
+## Estado observado na v0.12 — 27/09/2026
+
+O código atual cobre marcação direta de aula e exame prático interno. A Agenda sugere horários provisórios que respeitam disponibilidade, bloqueios, reservas e conflitos do aluno; a transação de gravação valida novamente. O Aluno 360 mostra aula e exame futuros e a auditoria inclui ações de exame. A consulta de candidatos para exame não expõe saldos e não exige `credit.read`. Testes locais, quatro suítes PostgreSQL em banco `_test`, smoke HTTP com Keycloak e uso visual dos dois fluxos passaram com dados sintéticos. A autorização antiga `file:///app` no navegador foi substituída pela entrada em `http://127.0.0.1:3000/app`. O registro detalhado está em `validation-2026-09-27.md`.
+
+Assinatura digital foi removida do escopo do MVP por decisão da GP. Para piloto real ainda faltam aceite de UX, regras operacionais homologadas, fonte oficial de exames, staging com restore, medição p95 e controles de produção.

@@ -37,6 +37,24 @@ export async function listPracticalExams(pool: Pool, identity: Identity, unitId:
   return {data:result.rows};
 }
 
+export async function listStudentPracticalExams(pool: Pool, identity: Identity, studentId: string, unitId: string) {
+  uuid(studentId,'Aluno');uuid(unitId,'Unidade');
+  await requireUnit(pool,identity,unitId,'exam.read');
+  await requireUnit(pool,identity,unitId,'student.read');
+  const student=await pool.query(`SELECT 1 FROM student WHERE id=$1 AND organization_id=$2 AND home_unit_id=$3`,
+    [studentId,identity.organizationId,unitId]);
+  if (!student.rowCount) throw new HttpError(404,'STUDENT_NOT_FOUND','Aluno não encontrado nesta unidade');
+  const result=await pool.query(`SELECT x.id,x.process_id AS "processId",x.status,x.result,x.category,x.location,
+    lower(x.during) AS "startsAt",upper(x.during) AS "endsAt",
+    ir.name AS "instructorName",vr.name AS "vehicleName"
+    FROM practical_exam x
+    JOIN resource ir ON ir.id=x.instructor_id AND ir.organization_id=x.organization_id
+    JOIN resource vr ON vr.id=x.vehicle_id AND vr.organization_id=x.organization_id
+    WHERE x.organization_id=$1 AND x.unit_id=$2 AND x.student_id=$3
+    ORDER BY lower(x.during) DESC,x.id DESC LIMIT 100`,[identity.organizationId,unitId,studentId]);
+  return {data:result.rows};
+}
+
 export async function schedulePracticalExam(pool: Pool, identity: Identity, raw: unknown,
   key: string | undefined, correlationId: string) {
   if (!['development','test'].includes(process.env.NODE_ENV ?? ''))

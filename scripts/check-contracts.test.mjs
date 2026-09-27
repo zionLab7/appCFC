@@ -23,6 +23,8 @@ test('API and events contracts exist',async()=>{
   assert.match(api,/\/api\/v1\/payments:/);
   assert.match(api,/\/api\/v1\/resources:/);
   assert.match(api,/\/api\/v1\/lessons:/);
+  assert.match(api,/\/api\/v1\/schedule\/availability:/);
+  assert.match(api,/\/api\/v1\/students\/\{studentId\}\/practical-exams:/);
   assert.match(api,/\/api\/v1\/scheduling\/candidates:/);
   assert.match(api,/\/api\/v1\/practical-exams:/);
   assert.match(api,/\/api\/v1\/reports\/operations:/);

@@ -8,8 +8,8 @@ import { activateEnrollment,createEnrollment,getEnrollment } from '../../src/enr
 import { getProcess,transitionProcess } from '../../src/processes.js';
 import { listTasks } from '../../src/tasks.js';
 import { getCredits,getFinance,receivePayment,refundPayment } from '../../src/finance.js';
-import { blockResource,bookLesson,cancelLesson,completeLesson,createResource,listLessons,listResources,listSchedulingCandidates,listStudentLessons } from '../../src/scheduling.js';
-import { cancelPracticalExam,listPracticalExams,recordPracticalExamResult,schedulePracticalExam } from '../../src/practical-exams.js';
+import { blockResource,bookLesson,cancelLesson,completeLesson,createResource,findAvailability,listLessons,listResources,listSchedulingCandidates,listStudentLessons } from '../../src/scheduling.js';
+import { cancelPracticalExam,listPracticalExams,listStudentPracticalExams,recordPracticalExamResult,schedulePracticalExam } from '../../src/practical-exams.js';
 import { getConsolidatedOperationsReport, getOperationsReport } from '../../src/reports.js';
 import { requestDocument } from '../../src/documents.js';
 
@@ -95,6 +95,14 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const candidates=await listSchedulingCandidates(pool,identity,unit);
     assert.equal(candidates.data[0].processId,first.processId);
     assert.equal(candidates.data[0].wallets[0].available,3);
+    const examCandidates=await listSchedulingCandidates(pool,identity,unit,'PRACTICAL_EXAM');
+    assert.equal(examCandidates.data[0].processId,first.processId);
+    assert.deepEqual(examCandidates.data[0].wallets,[]);
+    await pool.query(`DELETE FROM role_permission WHERE role_id=$1 AND permission_code='credit.read'`,[role]);
+    assert.equal((await listSchedulingCandidates(pool,identity,unit,'PRACTICAL_EXAM')).data[0].processId,first.processId);
+    await assert.rejects(listSchedulingCandidates(pool,identity,unit),{code:'ACCESS_DENIED'});
+    await pool.query(`INSERT INTO role_permission(role_id,permission_code) VALUES($1,'credit.read')`,[role]);
+    await assert.rejects(listSchedulingCandidates(pool,identity,unit,'OTHER'),{code:'INVALID_KIND'});
     const finances=await getFinance(pool,identity,draft.id,unit);
     assert.equal(finances.data.length,1);
     assert.equal(finances.data[0].amountCents,1200);
@@ -135,10 +143,19 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     const lessonInput={unitId:unit,studentId:student.id,processId:first.processId,walletId:wallets.data[0].id,
       category:'B',startsAt:lessonDate+'T15:00:00.000Z',endsAt:lessonDate+'T16:00:00.000Z',
       instructorId:instructor.id,vehicleId:vehicle.id};
+    const availabilityQuery=new URLSearchParams({unitId:unit,studentId:student.id,processId:first.processId,
+      day:lessonDate,category:'B',durationMinutes:'60',kind:'LESSON'});
+    const offered=await findAvailability(pool,identity,availabilityQuery);
+    assert.equal(offered.provisional,true);
+    assert.ok(offered.data.some((slot:{startsAt:Date})=>new Date(slot.startsAt).toISOString()===lessonInput.startsAt));
+    await assert.rejects(findAvailability(pool,identity,new URLSearchParams({...Object.fromEntries(availabilityQuery),unitId:otherUnit})),
+      {code:'ACCESS_DENIED'});
     const bookings=await Promise.allSettled([0,1].map(()=>bookLesson(pool,identity,lessonInput,key(),corr())));
     assert.equal(bookings.filter(x=>x.status==='fulfilled').length,1);
     assert.equal(bookings.filter(x=>x.status==='rejected').length,1);
     const lesson=(bookings.find(x=>x.status==='fulfilled') as PromiseFulfilledResult<Awaited<ReturnType<typeof bookLesson>>>).value;
+    assert.ok(!(await findAvailability(pool,identity,availabilityQuery)).data.some((slot:{startsAt:Date})=>
+      new Date(slot.startsAt).toISOString()===lessonInput.startsAt));
     assert.equal((await listLessons(pool,identity,unit,lessonDate)).data.find((item:{id:string})=>item.id===lesson.id).id,lesson.id);
     await assert.rejects(listLessons(pool,identity,unit,'2026-02-31'),{code:'INVALID_DATE'});
     assert.equal((await getCredits(pool,identity,draft.id,unit)).data[0].held,1);
@@ -185,6 +202,9 @@ test('Postgres: catálogo imutável, matrícula atômica, processo e transição
     await assert.rejects(schedulePracticalExam(pool,identity,{...examInput,unitId:otherUnit},key(),corr()),{code:'ACCESS_DENIED'});
     const cancelledExam=await cancelPracticalExam(pool,identity,exam.id,{unitId:unit,reason:'Reagendamento sintético'},key(),corr());
     assert.equal(cancelledExam.status,'CANCELLED');
+    assert.equal((await listStudentPracticalExams(pool,identity,student.id,unit)).data[0].status,'CANCELLED');
+    assert.ok((await getStudentTimeline(pool,identity,student.id,new URLSearchParams())).data.some(
+      (event:{action:string})=>event.action==='practical_exam.cancelled'));
     assert.equal((await pool.query(`SELECT count(*)::integer AS n FROM resource_block WHERE practical_exam_id=$1`,[exam.id])).rows[0].n,0);
     const nextExam=await schedulePracticalExam(pool,identity,examInput,key(),corr());
     await pool.query(`UPDATE practical_exam SET during=tstzrange(now()-interval '2 hours',now()-interval '1 hour','[)') WHERE id=$1`,[nextExam.id]);

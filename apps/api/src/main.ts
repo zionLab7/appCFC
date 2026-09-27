@@ -9,8 +9,8 @@ import { activateEnrollment, createEnrollment, getEnrollment } from './enrollmen
 import { getProcess, transitionProcess } from './processes.js';
 import { listTasks } from './tasks.js';
 import { getCredits, getFinance, receivePayment, refundPayment } from './finance.js';
-import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, listLessons, listResources, listSchedulingCandidates, listStudentLessons } from './scheduling.js';
-import { cancelPracticalExam, listPracticalExams, recordPracticalExamResult, schedulePracticalExam } from './practical-exams.js';
+import { blockResource, bookLesson, cancelLesson, completeLesson, createResource, findAvailability, listLessons, listResources, listSchedulingCandidates, listStudentLessons } from './scheduling.js';
+import { cancelPracticalExam, listPracticalExams, listStudentPracticalExams, recordPracticalExamResult, schedulePracticalExam } from './practical-exams.js';
 import { getConsolidatedOperationsReport, getOperationsReport } from './reports.js';
 import { downloadDocument, listDocuments, requestDocument, reviewDocument, uploadDocument } from './documents.js';
 import { listAccessibleUnits } from './access.js';
@@ -101,7 +101,9 @@ const server = createServer(async (req,res) => {
     if (url.pathname==='/api/v1/resources' && req.method==='GET')
       return reply(res,200,await listResources(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
     if (url.pathname==='/api/v1/scheduling/candidates' && req.method==='GET')
-      return reply(res,200,await listSchedulingCandidates(pool,identity,url.searchParams.get('unitId') ?? ''),correlationId);
+      return reply(res,200,await listSchedulingCandidates(pool,identity,url.searchParams.get('unitId') ?? '',url.searchParams.get('kind') ?? 'LESSON'),correlationId);
+    if (url.pathname==='/api/v1/schedule/availability' && req.method==='GET')
+      return reply(res,200,await findAvailability(pool,identity,url.searchParams),correlationId);
     if (url.pathname==='/api/v1/practical-exams' && req.method==='GET')
       return reply(res,200,await listPracticalExams(pool,identity,url.searchParams.get('unitId') ?? '',url.searchParams.get('day') ?? ''),correlationId);
     if (url.pathname==='/api/v1/practical-exams' && req.method==='POST')
@@ -137,6 +139,9 @@ const server = createServer(async (req,res) => {
     const studentLessons = /^\/api\/v1\/students\/([^/]+)\/lessons$/.exec(url.pathname);
     if (studentLessons && req.method==='GET')
       return reply(res,200,await listStudentLessons(pool,identity,studentLessons[1],url.searchParams.get('unitId') ?? ''),correlationId);
+    const studentExams = /^\/api\/v1\/students\/([^/]+)\/practical-exams$/.exec(url.pathname);
+    if (studentExams && req.method==='GET')
+      return reply(res,200,await listStudentPracticalExams(pool,identity,studentExams[1],url.searchParams.get('unitId') ?? ''),correlationId);
     const match = /^\/api\/v1\/students\/([^/]+)$/.exec(url.pathname);
     if (match && req.method==='GET') return reply(res,200,await getStudent(pool,identity,match[1]),correlationId);
     if (url.pathname==='/api/v1/catalog/packages' && req.method==='GET')

@@ -150,6 +150,14 @@
     .dialog-head p { color: #718894; font-size: .83rem; line-height: 1.4; margin: 0; }
     .dialog-actions { display: flex; justify-content: end; gap: 9px; margin-top: 20px; }
     .dialog-error { color: #9a3028; background: #fff0ed; border-radius: 8px; padding: 9px 11px; font-size: .82rem; margin: 0; }
+    dialog.schedule-dialog { width: min(650px, calc(100vw - 30px)); max-height: calc(100vh - 30px); overflow-y: auto; }
+    .slot-search { display: grid; grid-template-columns: minmax(130px,1fr) minmax(110px,140px) auto; align-items: end; gap: 10px; padding: 16px; background: #f1f7f6; border: 1px solid #d8e8e5; border-radius: 12px; }
+    .slot-search button { white-space: nowrap; }
+    .slot-list { display: grid; gap: 7px; max-height: 196px; overflow: auto; }
+    .slot-option { display: grid; grid-template-columns: 108px minmax(0,1fr); gap: 12px; width: 100%; text-align: left; background: #fff; color: #24485a; border: 1px solid #d9e5e7; }
+    .slot-option:hover, .slot-option.selected { background: #e9f7f3; border-color: #58aa99; color: #15564e; }
+    .slot-option span { color: #5f7985; font-size: .78rem; font-weight: 550; }
+    .form-note { color: #67808c; font-size: .78rem; margin: -4px 0 0; line-height: 1.45; }
     #login { max-width: 440px; margin: 10vh auto; text-align: center; padding: 36px; }
     #login .mark { margin: 0 auto 20px; width: 48px; height: 48px; }
     #login h1 { font-size: 1.5rem; }
@@ -181,7 +189,7 @@
     .agenda-empty strong { color:#234858; font-size:1rem; }
     .agenda-empty p { max-width:360px; margin:0 0 5px; font-size:.86rem; line-height:1.5; }
     @media (max-width: 900px) { .student-layout, .agenda-grid, .home-columns { grid-template-columns: 1fr; } .page-head { align-items: start; } .agenda-hero { align-items:flex-start; flex-direction:column; } }
-    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } .report-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .agenda-hero { padding:23px; } .agenda-actions { width:100%; } .agenda-actions button { flex:1 1 160px; } .agenda-switch { width:100%; overflow-x:auto; } .agenda-switch button { flex:1; white-space:nowrap; } .agenda-toolbar label { flex:1; } .agenda-item { grid-template-columns:72px 1fr; align-items:start; gap:10px; } .agenda-item .row-actions { grid-column:2; justify-content:start; } }
+    @media (max-width: 640px) { .topbar { padding: 12px 16px; } .environment { display: none; } main { padding: 23px 14px 40px; } .page-head { display: grid; } .toolbar { width: 100%; } .toolbar label { flex: 1; } .tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; white-space:normal; overflow:visible; border:0; } .tabs button { padding:10px 5px; border:1px solid #dbe5e9; border-radius:9px; font-size:.8rem; } .tabs button.active { background:#e5f7f2; border-color:#35a796; } .card-pad, .detail-content { padding: 18px; } .student-hero { display: block; } .student-hero .pill { margin-top: 12px; } .catalog-row { grid-template-columns: 1fr auto; } .catalog-row .row-actions { grid-column: 1 / -1; justify-content: start; } .task-row { align-items: start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } .timeline-row { display: grid; gap: 3px; } .report-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .agenda-hero { padding:23px; } .agenda-actions { width:100%; } .agenda-actions button { flex:1 1 160px; } .agenda-switch { width:100%; overflow-x:auto; } .agenda-switch button { flex:1; white-space:nowrap; } .agenda-toolbar label { flex:1; } .agenda-item { grid-template-columns:72px 1fr; align-items:start; gap:10px; } .agenda-item .row-actions { grid-column:2; justify-content:start; } .slot-search { grid-template-columns: 1fr 1fr; } .slot-search button { grid-column: 1 / -1; } .slot-option { grid-template-columns: 1fr; gap: 3px; } }
   </style>
 </head>
 <body>
@@ -255,15 +263,15 @@
         <p id="resourceDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="resourceDialog">Cancelar</button><button type="submit">Cadastrar</button></div>
       </form></div>
   </dialog>
-  <dialog id="bookingDialog" aria-labelledby="bookingDialogTitle">
+  <dialog id="bookingDialog" class="schedule-dialog" aria-labelledby="bookingDialogTitle">
     <div class="dialog-content"><div class="dialog-head"><div><h2 id="bookingDialogTitle">Marcar aula</h2><p>Escolha o aluno, o horário e os recursos da unidade.</p></div><button type="button" class="ghost small" data-close="bookingDialog" aria-label="Fechar">✕</button></div>
-      <form id="bookingForm" class="stack"><label>Aluno com matrícula ativa<select name="candidate" required></select></label><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><label>Categoria<input name="category" value="B" maxlength="20" required></label>
+      <form id="bookingForm" class="stack"><label>Aluno com matrícula ativa<select name="candidate" required></select></label><label>Categoria<input name="category" value="B" maxlength="20" required></label><div class="slot-search"><label>Dia desejado<input name="searchDay" type="date"></label><label>Duração<select name="durationMinutes"><option value="60">1 hora</option><option value="90">1h30</option><option value="120">2 horas</option></select></label><button id="findLessonSlots" type="button">Encontrar horários</button></div><div id="lessonSlots" class="slot-list" aria-live="polite"></div><p class="form-note">Escolha uma sugestão ou preencha o horário manualmente. A disponibilidade será conferida novamente ao salvar.</p><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div>
         <div class="form-grid"><label>Instrutor<select name="instructorId" required></select></label><label>Veículo<select name="vehicleId" required></select></label></div><label>Crédito de aula<select name="walletId" required></select></label>
         <p id="bookingDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="bookingDialog">Cancelar</button><button type="submit">Reservar aula</button></div>
       </form></div>
   </dialog>
-  <dialog id="examDialog" aria-labelledby="examDialogTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="examDialogTitle">Marcar exame prático</h2><p>Agendamento interno da unidade com aluno, instrutor e veículo. Não reserva vaga no órgão de trânsito.</p></div><button type="button" class="ghost small" data-close="examDialog" aria-label="Fechar">✕</button></div>
-    <form id="examForm" class="stack"><label>Aluno com processo ativo<select name="candidate" required></select></label><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><div class="form-grid"><label>Categoria<input name="category" value="B" maxlength="20" required></label><label>Local<input name="location" maxlength="160" required placeholder="Local de apresentação"></label></div><div class="form-grid"><label>Instrutor<select name="instructorId" required></select></label><label>Veículo<select name="vehicleId" required></select></label></div><p id="examDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="examDialog">Cancelar</button><button type="submit">Marcar exame</button></div></form>
+  <dialog id="examDialog" class="schedule-dialog" aria-labelledby="examDialogTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="examDialogTitle">Marcar exame prático</h2><p>Agendamento interno da unidade com aluno, instrutor e veículo. Não reserva vaga no órgão de trânsito.</p></div><button type="button" class="ghost small" data-close="examDialog" aria-label="Fechar">✕</button></div>
+    <form id="examForm" class="stack"><label>Aluno com processo ativo<select name="candidate" required></select></label><div class="form-grid"><label>Categoria<input name="category" value="B" maxlength="20" required></label><label>Local<input name="location" maxlength="160" required placeholder="Local de apresentação"></label></div><div class="slot-search"><label>Dia desejado<input name="searchDay" type="date"></label><label>Duração<select name="durationMinutes"><option value="60">1 hora</option><option value="90">1h30</option><option value="120">2 horas</option></select></label><button id="findExamSlots" type="button">Encontrar horários</button></div><div id="examSlots" class="slot-list" aria-live="polite"></div><p class="form-note">Escolha uma sugestão ou ajuste manualmente. A disponibilidade será conferida novamente ao salvar.</p><div class="form-grid"><label>Início<input name="startsAt" type="datetime-local" required></label><label>Fim<input name="endsAt" type="datetime-local" required></label></div><div class="form-grid"><label>Instrutor<select name="instructorId" required></select></label><label>Veículo<select name="vehicleId" required></select></label></div><p id="examDialogStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="examDialog">Cancelar</button><button type="submit">Marcar exame</button></div></form>
   </div></dialog>
   <dialog id="agendaActionDialog" aria-labelledby="agendaActionTitle"><div class="dialog-content"><div class="dialog-head"><div><h2 id="agendaActionTitle">Atualizar agendamento</h2><p id="agendaActionDescription"></p></div><button type="button" class="ghost small" data-close="agendaActionDialog" aria-label="Fechar">✕</button></div>
     <form id="agendaActionForm" class="stack"><label id="agendaReasonLabel">Motivo<input name="reason" minlength="2" maxlength="200"></label><label id="agendaResultLabel" class="hidden">Resultado<select name="result"><option value="PASSED">Aprovado</option><option value="FAILED">Reprovado</option></select></label><p id="agendaActionStatus" class="dialog-error hidden" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" data-close="agendaActionDialog">Voltar</button><button id="agendaActionSubmit" type="submit">Confirmar</button></div></form>
@@ -284,20 +292,27 @@
     const unit = () => $('unit').value;
     const money = cents => (Number(cents) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const date = value => new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const saoPauloParts = value => Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(value)).map(part=>[part.type,part.value]));
+    const dateTimeLocal = value => {const p=saoPauloParts(value);return p.year+'-'+p.month+'-'+p.day+'T'+p.hour+':'+p.minute;};
+    const dateOnlyLocal = value => dateTimeLocal(value).slice(0,10);
     const statusNames = { DRAFT: 'Rascunho', ACTIVE: 'Ativa', COMPLETED: 'Concluída', READY: 'Pronta', IN_PROGRESS: 'Em andamento', NOT_STARTED: 'Pendente', OPEN: 'Aberta', DONE: 'Concluída', PARTIALLY_PAID: 'Pagamento parcial', PAID: 'Pago', RESERVED: 'Reservada', CANCELLED_BY_CFC: 'Cancelada', REQUESTED: 'Solicitado', SUBMITTED: 'Em revisão', ACCEPTED: 'Aceito', REJECTED: 'Rejeitado' };
-    const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída', 'credit.granted': 'Créditos adicionados', 'credit.reserved': 'Crédito reservado', 'credit.released': 'Crédito liberado', 'credit.consumed': 'Crédito consumido', 'receivable.created': 'Recebível criado', 'payment.received': 'Pagamento registrado', 'payment.refunded': 'Estorno registrado', 'lesson.booked': 'Aula reservada', 'lesson.cancelled': 'Aula cancelada', 'lesson.completed': 'Aula concluída', 'document.requested': 'Documento solicitado', 'document.submitted': 'Documento enviado', 'document.reviewed': 'Documento revisado' };
+    const actionNames = { 'student.created': 'Aluno cadastrado', 'enrollment.created': 'Matrícula criada', 'enrollment.activated': 'Matrícula ativada', 'process.created': 'Processo iniciado', 'process.step.transitioned': 'Etapa do processo atualizada', 'task.created': 'Tarefa aberta', 'task.closed': 'Tarefa concluída', 'credit.granted': 'Créditos adicionados', 'credit.reserved': 'Crédito reservado', 'credit.released': 'Crédito liberado', 'credit.consumed': 'Crédito consumido', 'receivable.created': 'Recebível criado', 'payment.received': 'Pagamento registrado', 'payment.refunded': 'Estorno registrado', 'lesson.booked': 'Aula reservada', 'lesson.cancelled': 'Aula cancelada', 'lesson.completed': 'Aula concluída', 'practical_exam.scheduled': 'Exame prático agendado', 'practical_exam.cancelled': 'Exame prático cancelado', 'practical_exam.result_recorded': 'Resultado do exame registrado', 'document.requested': 'Documento solicitado', 'document.submitted': 'Documento enviado', 'document.reviewed': 'Documento revisado' };
     let token = '', students = [], catalog = [], tasks = [], resources = [], lessons = [], practicalExams = [], schedulingCandidates = [], selectedStudent = null, studentCursor = null, taskCursor = null, searchQuery = '', activeView = 'home', bookingContext = null, blockResourceId = null, agendaTab = 'lessons', agendaAction = null;
     function notice(message, kind = 'info') { const target = $('notice'); target.textContent = message; target.className = 'notice ' + kind; }
     function clearNotice() { $('notice').className = 'notice hidden'; }
     function errorText(error) { if (error?.status === 403) return 'Sem permissão nesta unidade.'; if (error?.status === 401) return 'Sessão expirada. Entre novamente.'; return error?.message || 'Falha inesperada.'; }
     const b64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
     async function login() {
-      const verifier = b64(crypto.getRandomValues(new Uint8Array(32))), state = b64(crypto.getRandomValues(new Uint8Array(16)));
-      sessionStorage.setItem('gp-pkce-verifier', verifier); sessionStorage.setItem('gp-pkce-state', state);
-      const challenge = b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
-      const url = new URL(realm + '/protocol/openid-connect/auth');
-      url.search = new URLSearchParams({ client_id: 'gp-cfc-dev', response_type: 'code', scope: 'openid', redirect_uri: appUrl, code_challenge: challenge, code_challenge_method: 'S256', state });
-      location.assign(url);
+      const status = $('loginStatus');
+      try {
+        status.textContent = 'Abrindo acesso seguro…';
+        const verifier = b64(crypto.getRandomValues(new Uint8Array(32))), state = b64(crypto.getRandomValues(new Uint8Array(16)));
+        sessionStorage.setItem('gp-pkce-verifier', verifier); sessionStorage.setItem('gp-pkce-state', state);
+        const challenge = b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+        const url = new URL(realm + '/protocol/openid-connect/auth');
+        url.search = new URLSearchParams({ client_id: 'gp-cfc-dev', response_type: 'code', scope: 'openid', redirect_uri: appUrl, code_challenge: challenge, code_challenge_method: 'S256', state });
+        location.assign(url);
+      } catch (error) { status.textContent = errorText(error); }
     }
     async function completeLogin() {
       const query = new URLSearchParams(location.search), code = query.get('code');
@@ -546,6 +561,8 @@
       if (student.documentLast4) meta.append(node('span', 'CPF final ' + student.documentLast4));
       for (const contact of student.contacts || []) meta.append(node('span', contact.kind === 'PHONE' ? 'Telefone ' + contact.value : contact.value));
       info.append(meta); hero.append(info, node('span', 'Aluno 360', 'pill')); target.append(hero);
+      const appointmentsHead=node('div',undefined,'section-head');appointmentsHead.append(node('h3','Próximos horários'));
+      const appointments=node('div');target.append(appointmentsHead,appointments);void loadStudentAppointments(student.id,appointments);
       const enrollHead = node('div', undefined, 'section-head'); enrollHead.append(node('h3', 'Matrículas'), node('span', student.enrollments.length + ' registrada(s)', 'subtle')); target.append(enrollHead);
       if (!student.enrollments.length) target.append(node('p', 'Nenhuma matrícula para este aluno.', 'minor-empty'));
       for (const enrollment of student.enrollments) {
@@ -584,6 +601,24 @@
         if (page.nextCursor) { const more = node('button', 'Ver eventos anteriores', 'secondary small'); more.dataset.timelineMore = ''; more.onclick = async () => { more.disabled = true; try { appendTimeline(await api('/students/' + student.id + '/timeline?cursor=' + encodeURIComponent(page.nextCursor))); } catch (error) { more.disabled = false; notice(errorText(error), 'error'); } }; target.append(more); }
       }
       appendTimeline(timeline);
+    }
+    async function loadStudentAppointments(studentId,target) {
+      const requestedUnit=unit();target.replaceChildren(node('p','Carregando horários…','subtle'));
+      const [lessonResult,examResult]=await Promise.allSettled([
+        api('/students/'+studentId+'/lessons?unitId='+requestedUnit),
+        api('/students/'+studentId+'/practical-exams?unitId='+requestedUnit)]);
+      if(selectedStudent!==studentId||unit()!==requestedUnit||!target.isConnected)return;
+      target.replaceChildren();
+      if(lessonResult.status==='rejected'&&examResult.status==='rejected'){target.append(node('p','Agenda indisponível para este acesso.','minor-empty'));return;}
+      const upcoming=[...(lessonResult.status==='fulfilled'?lessonResult.value.data:[]).filter(item=>['RESERVED','CONFIRMED'].includes(item.status)).map(item=>({...item,kind:'Aula'})),
+        ...(examResult.status==='fulfilled'?examResult.value.data:[]).filter(item=>item.status==='SCHEDULED').map(item=>({...item,kind:'Exame prático'}))]
+        .filter(item=>Date.parse(item.startsAt)>Date.now()).sort((a,b)=>Date.parse(a.startsAt)-Date.parse(b.startsAt)).slice(0,3);
+      if(!upcoming.length){target.append(node('p','Nenhuma aula ou exame prático futuro. Use a Agenda para marcar.','minor-empty'));return;}
+      for(const item of upcoming){const row=node('div',undefined,'item-row'),info=node('div'),open=node('button','Abrir agenda','small secondary');
+        info.append(node('strong',item.kind+' · '+date(item.startsAt)),node('p',item.kind==='Aula'?item.category+' · '+(item.instructorName||'Instrutor a definir'):item.category+' · '+item.location,'subtle'));
+        open.onclick=()=>{setView('agenda');$('agendaDate').value=dateOnlyLocal(item.startsAt);showAgendaTab(item.kind==='Aula'?'lessons':'exams');void loadAgenda();};
+        row.append(info,open);target.append(row);
+      }
     }
     async function showDocuments(student,target) {
       const requestedUnit=unit();target.replaceChildren(node('p','Carregando documentos…','subtle'));
@@ -634,7 +669,7 @@
               notice('Documento solicitado.','success');await showDocuments(student,target);
             }catch(error){notice(errorText(error),'error');}};target.append(request);}
         }
-        target.append(node('p','Aceitar um arquivo de contrato não confirma assinatura. A integração de assinatura ainda será configurada.','subtle'));
+        target.append(node('p','Aceitar o arquivo do contrato não confirma assinatura. A assinatura digital está fora deste MVP.','subtle'));
       }catch(error){target.replaceChildren(node('p',errorText(error),'minor-empty'));}
     }
     async function showCommerce(enrollmentId, target) {
@@ -699,9 +734,35 @@
       } catch (error) { target.textContent = errorText(error); }
     }
     function fillOptions(select,items,label,value='id') { select.replaceChildren();for(const item of items){const option=node('option',label(item));option.value=item[value];select.append(option);} }
-    async function loadSchedulingInputs() {
+    async function findSuggestions(formId,targetId,buttonId,kind) {
+      const form=$(formId),target=$(targetId),button=$(buttonId);
+      const processId=form.elements.namedItem('candidate').value;
+      const candidate=schedulingCandidates.find(item=>item.processId===processId);
+      const day=form.elements.namedItem('searchDay').value;
+      if(!candidate||!day){target.replaceChildren(node('p','Escolha um aluno e um dia para buscar horários.','minor-empty'));return;}
+      const requestedUnit=unit();button.disabled=true;target.replaceChildren(node('p','Buscando horários livres…','subtle'));
+      try {const params=new URLSearchParams({unitId:requestedUnit,studentId:candidate.studentId,processId,
+        day,category:form.elements.namedItem('category').value,durationMinutes:form.elements.namedItem('durationMinutes').value,kind});
+        const result=await api('/schedule/availability?'+params);
+        if(unit()!==requestedUnit||form.elements.namedItem('candidate').value!==processId)return;
+        target.replaceChildren();
+        if(!result.data.length){target.append(node('p','Nenhum horário livre neste dia. Tente outra data ou ajuste a duração.','minor-empty'));return;}
+        for(const slot of result.data){const option=node('button',undefined,'slot-option');option.type='button';
+          const start=dateTimeLocal(slot.startsAt).slice(11),end=dateTimeLocal(slot.endsAt).slice(11);
+          option.append(node('strong',start+'–'+end),node('span',slot.instructorName+' · '+slot.vehicleName));
+          option.onclick=()=>{form.elements.namedItem('startsAt').value=dateTimeLocal(slot.startsAt);
+            form.elements.namedItem('endsAt').value=dateTimeLocal(slot.endsAt);
+            form.elements.namedItem('instructorId').value=slot.instructorId;
+            form.elements.namedItem('vehicleId').value=slot.vehicleId;
+            for(const other of target.querySelectorAll('.slot-option'))other.classList.toggle('selected',other===option);
+          };target.append(option);
+        }
+      }catch(error){target.replaceChildren(node('p',errorText(error),'dialog-error'));}
+      finally{button.disabled=false;}
+    }
+    async function loadSchedulingInputs(kind='LESSON') {
       const requestedUnit=unit(),[candidatePage,resourcePage]=await Promise.all([
-        api('/scheduling/candidates?unitId='+requestedUnit),api('/resources?unitId='+requestedUnit)]);
+        api('/scheduling/candidates?'+new URLSearchParams({unitId:requestedUnit,kind})),api('/resources?unitId='+requestedUnit)]);
       if(unit()!==requestedUnit) return null;
       schedulingCandidates=candidatePage.data;resources=resourcePage.data;
       const instructors=resources.filter(item=>item.kind==='INSTRUCTOR'),vehicles=resources.filter(item=>item.kind==='VEHICLE');
@@ -725,15 +786,17 @@
         if(processId && eligible.some(item=>item.processId===processId))form.elements.namedItem('candidate').value=processId;
         fillOptions(form.elements.namedItem('instructorId'),inputs.instructors,item=>item.name);
         fillOptions(form.elements.namedItem('vehicleId'),inputs.vehicles,item=>item.name);
-        bookingContext={unitId:unit()};refreshBookingWallets();$('bookingDialog').showModal();
+        form.elements.namedItem('searchDay').value=$('agendaDate').value||dateOnlyLocal(Date.now()+86_400_000);
+        $('lessonSlots').replaceChildren();bookingContext={unitId:unit()};refreshBookingWallets();$('bookingDialog').showModal();
       }catch(error){notice(errorText(error),'error');}
     }
     async function openExam() {
-      try {const inputs=await loadSchedulingInputs();if(!inputs)return;
+      try {const inputs=await loadSchedulingInputs('PRACTICAL_EXAM');if(!inputs)return;
         const form=$('examForm');fillOptions(form.elements.namedItem('candidate'),schedulingCandidates,item=>item.studentName+' · matrícula '+item.enrollmentId.slice(0,8),'processId');
         fillOptions(form.elements.namedItem('instructorId'),inputs.instructors,item=>item.name);
         fillOptions(form.elements.namedItem('vehicleId'),inputs.vehicles,item=>item.name);
-        $('examDialogStatus').classList.add('hidden');$('examDialog').showModal();showAgendaTab('exams');
+        form.elements.namedItem('searchDay').value=$('agendaDate').value||dateOnlyLocal(Date.now()+86_400_000);
+        $('examSlots').replaceChildren();$('examDialogStatus').classList.add('hidden');$('examDialog').showModal();showAgendaTab('exams');
       }catch(error){notice(errorText(error),'error');}
     }
     async function showProcess(id) {
@@ -764,7 +827,10 @@
     $('newBooking').onclick=()=>{void openBooking();};$('newExam').onclick=()=>{void openExam();};
     $('showLessons').onclick=()=>showAgendaTab('lessons');$('showExams').onclick=()=>showAgendaTab('exams');$('showResources').onclick=()=>showAgendaTab('resources');
     $('agendaDate').onchange=()=>{void loadAgenda();};$('clearAgendaDate').onclick=()=>{$('agendaDate').value='';void loadAgenda();};
-    $('bookingForm').elements.namedItem('candidate').onchange=refreshBookingWallets;
+    $('bookingForm').elements.namedItem('candidate').onchange=()=>{refreshBookingWallets();$('lessonSlots').replaceChildren();};
+    $('examForm').elements.namedItem('candidate').onchange=()=>{$('examSlots').replaceChildren();};
+    $('findLessonSlots').onclick=()=>{void findSuggestions('bookingForm','lessonSlots','findLessonSlots','LESSON');};
+    $('findExamSlots').onclick=()=>{void findSuggestions('examForm','examSlots','findExamSlots','PRACTICAL_EXAM');};
     $('refresh').onclick = async () => { clearNotice(); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); if (selectedStudent && activeView === 'students') await selectStudent(selectedStudent); };
     $('unit').onchange = async () => { localStorage.setItem('gp-last-unit',unit()); selectedStudent = null; searchQuery = ''; $('searchForm').reset(); clearNotice(); $('detail').className = 'empty-state'; $('detail').replaceChildren(node('span', '◎', 'empty-icon'), node('strong', 'Selecione um aluno'), node('p', 'As matrículas e a linha do tempo aparecem aqui.')); $('processCard').classList.add('hidden'); await Promise.all([loadStudents(), loadCatalog(), ...(activeView === 'home' ? [loadHome()] : []), ...(activeView === 'tasks' ? [loadTasks()] : []), ...(activeView === 'agenda' ? [loadAgenda()] : []), ...(activeView === 'reports' ? [loadReport()] : [])]); };
     $('searchForm').onsubmit = async event => { event.preventDefault(); searchQuery = String(new FormData(event.currentTarget).get('query') || '').trim(); await loadStudents(); };

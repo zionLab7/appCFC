@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GP CFC API
-  version: 0.11.0
+  version: 0.12.0
   description: Rotas marcadas implemented funcionam na API local; demais rotas são alvo de produto.
 servers:
   - url: http://localhost:3000
@@ -92,6 +92,12 @@ paths:
       x-implementation-status: implemented
       parameters: [ { $ref: '#/components/parameters/StudentId' }, { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
       responses: { '200': { description: Até 100 aulas da unidade para o aluno }, '403': { $ref: '#/components/responses/Problem' } }
+  /api/v1/students/{studentId}/practical-exams:
+    get:
+      operationId: listStudentPracticalExams
+      x-implementation-status: implemented
+      parameters: [ { $ref: '#/components/parameters/StudentId' }, { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
+      responses: { '200': { description: Até 100 exames práticos internos do aluno na unidade }, '403': { $ref: '#/components/responses/Problem' }, '404': { $ref: '#/components/responses/Problem' } }
   /api/v1/tasks:
     get:
       operationId: listTasks
@@ -264,14 +270,18 @@ paths:
   /api/v1/schedule/availability:
     get:
       operationId: findAvailability
-      x-implementation-status: planned
+      x-implementation-status: implemented
+      description: Até 12 sugestões provisórias no dia informado; o POST de aula ou exame valida conflitos novamente na transação.
       parameters:
         - { $ref: '#/components/parameters/OrganizationId' }
         - { name: unitId, in: query, required: true, schema: { type: string, format: uuid } }
         - { name: studentId, in: query, required: true, schema: { type: string, format: uuid } }
-        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
-        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
-      responses: { '200': { description: Sugestões sujeitas a reconfirmação no POST } }
+        - { name: processId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: day, in: query, required: true, schema: { type: string, format: date } }
+        - { name: category, in: query, required: true, schema: { type: string } }
+        - { name: durationMinutes, in: query, schema: { type: integer, minimum: 30, maximum: 180, multipleOf: 30, default: 60 } }
+        - { name: kind, in: query, schema: { type: string, enum: [LESSON,PRACTICAL_EXAM], default: LESSON } }
+      responses: { '200': { description: Sugestões sujeitas a reconfirmação no POST }, '400': { $ref: '#/components/responses/Problem' }, '403': { $ref: '#/components/responses/Problem' } }
   /api/v1/resources:
     get:
       operationId: listResources
@@ -295,9 +305,9 @@ paths:
     get:
       operationId: listSchedulingCandidates
       x-implementation-status: implemented
-      description: Processos ativos e carteiras de aula da unidade autorizada para iniciar marcação diretamente na agenda.
-      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' } ]
-      responses: { '200': { description: Até 200 processos elegíveis, com saldo disponível por carteira }, '403': { $ref: '#/components/responses/Problem' } }
+      description: Processos ativos da unidade autorizada. O modo LESSON exige permissão de crédito e inclui carteiras; PRACTICAL_EXAM omite saldos.
+      parameters: [ { $ref: '#/components/parameters/OrganizationId' }, { $ref: '#/components/parameters/UnitQuery' }, { name: kind, in: query, schema: { type: string, enum: [LESSON, PRACTICAL_EXAM], default: LESSON } } ]
+      responses: { '200': { description: Até 200 processos elegíveis, com saldo disponível apenas no modo LESSON }, '403': { $ref: '#/components/responses/Problem' } }
   /api/v1/practical-exams:
     get:
       operationId: listPracticalExams

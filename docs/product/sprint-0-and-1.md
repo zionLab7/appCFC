@@ -6,7 +6,7 @@
 
 **Ainda em 26/09/2026:** a v0.6 passou no CI remoto. A v0.7 acrescenta relatório operacional por unidade e dispatcher assinado da outbox com retry e lease. Restam critérios de Sprint 0 como staging, backup/restore, p95, secret management e aceite de operação real; manter as stories abertas até esses gates passarem.
 
-**Continuação v0.8:** restore local sintético em banco `_test` passou, e documentos ganharam armazenamento privado, revisão e download auditado. O contrato é apenas rascunho, pois o provedor de assinatura ainda será escolhido. Staging, restore de staging, p95, regras da equipe GP e controles de produção continuam pendentes.
+**Continuação v0.12:** restore local sintético em banco `_test` passou, e documentos têm armazenamento privado, revisão e download auditado. A agenda permite marcar aulas e exames internos e consultar sugestões de horário. O contrato permanece em rascunho; assinatura digital saiu do escopo do MVP por decisão da GP. Staging, restore de staging, p95, regras da equipe GP e controles de produção continuam pendentes.
 
 ## Sprint 0 — fundação (5 dias úteis, estimativa inicial)
 

@@ -68,22 +68,86 @@ export async function listResources(pool: Pool, identity: Identity, unitId: stri
   return {data:result.rows};
 }
 
-export async function listSchedulingCandidates(pool: Pool, identity: Identity, unitId: string) {
+export async function listSchedulingCandidates(pool: Pool, identity: Identity, unitId: string, kind='LESSON') {
+  if (!['LESSON','PRACTICAL_EXAM'].includes(kind)) throw new HttpError(400,'INVALID_KIND','Tipo de agenda inválido');
   uuid(unitId,'Unidade'); await requireUnit(pool,identity,unitId,'student.read');
-  await requireUnit(pool,identity,unitId,'credit.read');
+  await requireUnit(pool,identity,unitId,kind==='LESSON'?'lesson.book':'exam.schedule');
+  if (kind==='LESSON') await requireUnit(pool,identity,unitId,'credit.read');
   const result=await pool.query(`SELECT p.id AS "processId",p.student_id AS "studentId",
     p.enrollment_id AS "enrollmentId",person.full_name AS "studentName",
-    coalesce((SELECT jsonb_agg(jsonb_build_object('id',w.id,'itemType',w.item_type,
+    ${kind==='LESSON'?`coalesce((SELECT jsonb_agg(jsonb_build_object('id',w.id,'itemType',w.item_type,
       'available',coalesce((SELECT sum(quantity) FROM credit_ledger_entry WHERE wallet_id=w.id),0)-
         coalesce((SELECT sum(quantity) FROM credit_reservation WHERE wallet_id=w.id AND status='HELD'),0))
       ORDER BY w.item_type) FROM credit_wallet w WHERE w.organization_id=p.organization_id
-        AND w.enrollment_id=p.enrollment_id AND w.item_type LIKE 'LESSON%'),'[]'::jsonb) AS wallets
+        AND w.enrollment_id=p.enrollment_id AND w.item_type LIKE 'LESSON%'),'[]'::jsonb)`:`'[]'::jsonb`} AS wallets
     FROM process p JOIN enrollment e ON e.id=p.enrollment_id AND e.organization_id=p.organization_id
     JOIN student s ON s.id=p.student_id AND s.organization_id=p.organization_id
     JOIN person ON person.id=s.person_id AND person.organization_id=s.organization_id
     WHERE p.organization_id=$1 AND p.unit_id=$2 AND p.status='ACTIVE' AND e.status='ACTIVE'
     ORDER BY person.full_name,p.created_at DESC LIMIT 200`,[identity.organizationId,unitId]);
   return {data:result.rows};
+}
+
+/** Read-only suggestions. The booking transaction remains the authority for every constraint. */
+export async function findAvailability(pool: Pool, identity: Identity, params: URLSearchParams) {
+  const unitId=uuid(params.get('unitId'),'Unidade');
+  const studentId=uuid(params.get('studentId'),'Aluno');
+  const processId=uuid(params.get('processId'),'Processo');
+  const day=params.get('day') ?? '', parsedDay=Date.parse(day+'T12:00:00Z');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(parsedDay) ||
+    new Date(parsedDay).toISOString().slice(0,10)!==day)
+    throw new HttpError(400,'INVALID_DATE','Dia inválido');
+  const category=String(params.get('category')??'').trim().toUpperCase();
+  if (!/^[A-Z0-9_]{1,20}$/.test(category)) throw new HttpError(400,'INVALID_CATEGORY','Categoria inválida');
+  const duration=Number(params.get('durationMinutes') ?? '60');
+  if (!Number.isInteger(duration) || duration<30 || duration>180 || duration%30!==0)
+    throw new HttpError(400,'INVALID_DURATION','Duração deve ser de 30 a 180 minutos em passos de 30');
+  const kind=params.get('kind') ?? 'LESSON';
+  if (!['LESSON','PRACTICAL_EXAM'].includes(kind)) throw new HttpError(400,'INVALID_KIND','Tipo de agenda inválido');
+  await requireUnit(pool,identity,unitId,kind==='LESSON'?'lesson.book':'exam.schedule');
+  await requireUnit(pool,identity,unitId,'student.read');
+  await requireUnit(pool,identity,unitId,'resource.read');
+  const process=await pool.query(`SELECT 1 FROM process p JOIN enrollment e
+    ON e.id=p.enrollment_id AND e.organization_id=p.organization_id
+    WHERE p.id=$1 AND p.organization_id=$2 AND p.unit_id=$3 AND p.student_id=$4
+      AND p.status='ACTIVE' AND e.status='ACTIVE'`,[processId,identity.organizationId,unitId,studentId]);
+  if (!process.rowCount) throw new HttpError(404,'PROCESS_NOT_ACTIVE','Processo ativo não encontrado nesta unidade');
+  const result=await pool.query(`WITH slots AS (
+      SELECT g AS starts_at,g+($6::int*interval '1 minute') AS ends_at
+      FROM generate_series(($4::date+time '06:00') AT TIME ZONE 'America/Sao_Paulo',
+        ($4::date+time '21:30') AT TIME ZONE 'America/Sao_Paulo',interval '30 minutes') g
+      WHERE g>now()+interval '1 minute'
+    ), options AS (
+      SELECT s.starts_at,s.ends_at,i.id AS instructor_id,i.name AS instructor_name,
+        v.id AS vehicle_id,v.name AS vehicle_name,
+        row_number() OVER(PARTITION BY s.starts_at ORDER BY i.name,v.name,i.id,v.id) AS choice
+      FROM slots s JOIN resource i ON i.organization_id=$1 AND i.home_unit_id=$2
+        AND i.kind='INSTRUCTOR' AND i.active AND (i.category IS NULL OR i.category=$5)
+      JOIN resource v ON v.organization_id=$1 AND v.home_unit_id=$2
+        AND v.kind='VEHICLE' AND v.active AND (v.category IS NULL OR v.category=$5)
+      WHERE NOT EXISTS (SELECT 1 FROM lesson l WHERE l.organization_id=$1 AND l.student_id=$3
+        AND l.status IN ('RESERVED','CONFIRMED','CHECKED_IN','IN_PROGRESS')
+        AND l.during && tstzrange(s.starts_at,s.ends_at,'[)'))
+        AND NOT EXISTS (SELECT 1 FROM practical_exam x WHERE x.organization_id=$1 AND x.student_id=$3
+          AND x.status='SCHEDULED' AND x.during && tstzrange(s.starts_at,s.ends_at,'[)'))
+        AND NOT EXISTS (SELECT 1 FROM resource r WHERE r.id IN (i.id,v.id) AND NOT EXISTS (
+          SELECT 1 FROM resource_availability a WHERE a.organization_id=$1 AND a.resource_id=r.id
+            AND a.weekday=extract(dow FROM s.starts_at AT TIME ZONE 'America/Sao_Paulo')
+            AND a.valid_from<=$4::date AND (a.valid_until IS NULL OR a.valid_until>=$4::date)
+            AND (s.starts_at AT TIME ZONE 'America/Sao_Paulo')::date=$4::date
+            AND (s.ends_at AT TIME ZONE 'America/Sao_Paulo')::date=$4::date
+            AND a.starts_at<=(s.starts_at AT TIME ZONE 'America/Sao_Paulo')::time
+            AND a.ends_at>=(s.ends_at AT TIME ZONE 'America/Sao_Paulo')::time))
+        AND NOT EXISTS (SELECT 1 FROM resource_block b WHERE b.organization_id=$1
+          AND b.resource_id IN (i.id,v.id) AND b.during && tstzrange(s.starts_at,s.ends_at,'[)'))
+        AND NOT EXISTS (SELECT 1 FROM resource_booking b WHERE b.organization_id=$1
+          AND b.resource_id IN (i.id,v.id) AND b.status IN ('HELD','CONFIRMED')
+          AND b.during && tstzrange(s.starts_at,s.ends_at,'[)'))
+    ) SELECT starts_at AS "startsAt",ends_at AS "endsAt",instructor_id AS "instructorId",
+      instructor_name AS "instructorName",vehicle_id AS "vehicleId",vehicle_name AS "vehicleName"
+      FROM options WHERE choice=1 ORDER BY starts_at LIMIT 12`,
+    [identity.organizationId,unitId,studentId,day,category,duration]);
+  return {data:result.rows,provisional:true};
 }
 
 export async function blockResource(pool: Pool, identity: Identity, resourceId: string, raw: unknown,

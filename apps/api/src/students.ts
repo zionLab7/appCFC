@@ -198,6 +198,8 @@ export async function getStudentTimeline(pool: Pool, identity: Identity, student
           WHERE t.id=a.entity_id AND t.organization_id=a.organization_id AND pr.student_id=$2))
         OR (a.entity_type='lesson' AND EXISTS (SELECT 1 FROM lesson l
           WHERE l.id=a.entity_id AND l.organization_id=a.organization_id AND l.student_id=$2))
+        OR (a.entity_type='practical_exam' AND EXISTS (SELECT 1 FROM practical_exam x
+          WHERE x.id=a.entity_id AND x.organization_id=a.organization_id AND x.student_id=$2))
         OR (a.entity_type='credit_reservation' AND EXISTS (SELECT 1 FROM credit_reservation h
           JOIN lesson l ON l.id=h.lesson_id AND l.organization_id=h.organization_id
           WHERE h.id=a.entity_id AND h.organization_id=a.organization_id AND l.student_id=$2))
@@ -222,11 +224,12 @@ export async function getStudentTimeline(pool: Pool, identity: Identity, student
         JOIN unit un ON un.id=m.unit_id AND un.organization_id=m.organization_id JOIN app_user u ON u.id=m.user_id
         WHERE m.organization_id=a.organization_id AND m.unit_id=a.unit_id AND m.user_id=$3
           AND m.active AND un.active AND u.status='ACTIVE' AND rp.permission_code='student.read')
-      AND (a.entity_type NOT IN ('credit_wallet','credit_reservation','receivable','payment','payment_refund','lesson') OR EXISTS (
+      AND (a.entity_type NOT IN ('credit_wallet','credit_reservation','receivable','payment','payment_refund','lesson','practical_exam') OR EXISTS (
         SELECT 1 FROM user_unit_membership m JOIN role_permission rp ON rp.role_id=m.role_id
         WHERE m.organization_id=a.organization_id AND m.unit_id=a.unit_id AND m.user_id=$3 AND m.active
           AND rp.permission_code=CASE WHEN a.entity_type IN ('credit_wallet','credit_reservation') THEN 'credit.read'
-            WHEN a.entity_type='lesson' THEN 'lesson.read' ELSE 'finance.read' END))
+            WHEN a.entity_type='lesson' THEN 'lesson.read'
+            WHEN a.entity_type='practical_exam' THEN 'exam.read' ELSE 'finance.read' END))
     ORDER BY a.occurred_at DESC,a.id DESC LIMIT $6`,
     [identity.organizationId,studentId,identity.userId,cursor?.createdAt ?? null,cursor?.id ?? null,limit+1]);
   const hasMore=result.rows.length>limit,page=result.rows.slice(0,limit);
